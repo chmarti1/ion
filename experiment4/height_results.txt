@@ -1,0 +1,41 @@
+Using the tests shown below, fits are produced for R(s) and s(R)
+Confidence intervals were established for 95% certainty (+/- 1.9 std)
+190320/test2.dat
+190320/test4.dat
+190320/test5.dat
+190320/test6.dat
+190320/test9.dat
+190320/test10.dat
+190320/test11.dat
+190322/test4.dat
+190322/test5.dat
+190322/test6.dat
+190322/test7.dat
+190322/test15.dat
+190327/test8.dat
+190327/test9.dat
+190327/test10.dat
+190327/test11.dat
+190327/test12.dat
+190327/test13.dat
+190327/test14.dat
+190327/test15.dat
+190327/test16.dat
+190327/test17.dat
+190327/test18.dat
+190327/test19.dat
+***=====================***
+R = 0.072061 s + 0.020972
+With a 95\% confidence interval
+slope = 0.072061 +/- 0.010862
+offset = 0.020972 +/- 0.002307
+Uncertainty in the fit for R is
+var_R = 0.000033 s^2 + -0.000013 s + 0.000001
+***=====================***
+s = 12.325766 R + -0.235903
+With a 95\% confidence interval
+slope = 12.325766 +/- 1.857823
+offset = -0.235903 +/- 0.066665
+Uncertainty in the fit for s is
+var_s = 0.956096 R^2 + -0.067948 R + 0.001231
+***=====================***

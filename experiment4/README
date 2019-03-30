@@ -1,0 +1,42 @@
+Experiment 4 is conducted with the LabJack T7 commanding the proto-board power supply while cutting steel.  The standoff, flow rates, feed rates, plate level, etc... may vary test to test, so the individual test case notes should be consulted when interpreting the results.
+
+The proceedure for running a test is as follows:
+(1) Open a terminal window.  You can either use the small black square in the bottom-left corner of the master screen or you can press Ctrl+Alt+t.
+
+(2) With NO GAS FLOWING start the gasmon program.  When gasmon starts, it automatically zeros all the measurements, so it is VITAL that no gas should be flowing when the program is called.  Once called, the program will start printing real-time flow rates and ratios to the terminal window.  Leave this window open.
+	chris@gizmo:~$ gasmon
+
+(3) Open a new terminal window.  Create a directory named for today's date in the experiment4 directory.  The naming convention should obey YYMMDD.  Here is an example for starting a test on January 30th, 2019.
+	chris@gizmo:~$ cd /home/chris/Documents/flamesense/experiment4
+	chris@gizmo:~/Documents/flamesense/experiment4$ mkdir 190130
+	chris@gizmo:~/Documents/flamesense/experiment4$ cd 190130
+	chris@gizmo:~/Documents/flamesense/experiment4/190130$
+
+(4) Create a drun.conf configuration file in that directory.  For most tests, it can simply be copied from an older test directory.  This is where the configuration parameters for the T7 that performs the data acquisition are set.  It controls the data collection rate, the channel configurations, and the analog output.  In this example, I pull a configuration file from January 28th, then I call "ls" to verify that the new file exists and is named correctly.
+	chris@gizmo:~/Documents/flamesense/experiment4/190130$ cp ../190128/drun.conf ./drun.conf
+	chris@gizmo:~/Documents/flamesense/experiment4/190130$ ls
+		drun.conf
+
+(5) Type the drun command into the terminal, but do not run it yet.  Use a name for the data file you want to create.  Be careful; if you write the name of an existing data file, it will be overwritten!
+	chris@gizmo:~/Documents/flamesense/experiment4/190130$ drun -d this_data_file.dat
+
+(6) Turn on the cutting machine if it is not already on.  Flip the switch on the cutting machine control panel.  The green indicator light and fan should come on.
+
+(7) Open a third terminal window.  Use this window to establish a remote connection to the cutting machine's controler.  If you receive a "No route to host" error, it probably means the machine isn't on (see step 6).  The IP address for the machine is 192.168.1.10, and the user is "pi". The password is "cut"
+	chris@gizmo:~$ ssh pi@192.168.1.10
+	pi@192.168.1.10's password: 
+
+(8) Once logged in, navigate to the "motion" directory
+	pi@cut:~ $ cd Documents/motion
+	pi@cut:~/Documents/motion $
+
+8.5) If you need to adjust the settings in the line.nc file, open it with nano.  Edit the file to suit, then save it with "Ctrl+O"  To exit, use "Ctrl+X"  Finally, if you want to verify that the edits were successful, print the file to the terminal screen with "cat"  If the readout agrees with your changes, you are ready to go.
+	pi@cut:~/Documents/motion $ nano line.nc
+	pi@cut:~/Documents/motion $ cat line.nc
+
+(9) type the cutting machine command, but do not run it until the cut is ready
+	 pi@cut:~/Documents/motion $ sudo ./mcut -f line.nc
+
+(10) Light the torch and dial in the gas flows to the desired operating condition.
+
+(11) When ready, move the torch into position, and run
