@@ -5,13 +5,22 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import sys, os
+import lplot
 
 # Window
 t_window = 0.5
 # The excitaiton frequency
 f_hz = 10.
 
-D = lconfig.LConf(sys.argv[1], data=True)
+filename = sys.argv[1]
+tstart = None
+tstop = None
+if len(sys.argv) > 3:
+	tstart = float(sys.argv[2])
+	tstop = float(sys.argv[3])
+
+
+D = lconfig.LConf(filename, data=True)
 #D = lconfig.LConf('190222/test1.dat', data=True)
 Nw = D.get_index(t_window)
 
@@ -35,28 +44,49 @@ for index in range(0, Nt):
     ii = I[index*Nw:(index+1)*Nw]
     vv = V[index*Nw:(index+1)*Nw]
     
-    FF = np.fft.fft(vv)
+    v_f = np.fft.fft(vv) / Nw
+    i_f = np.fft.fft(ii) / Nw
     
-    V0[index] = FF[indf]
-    V1[index] = FF[indf*2]
-    V2[index] = FF[indf*3]
+    V0[index] = np.abs(v_f[indf])
+    V1[index] = np.abs(v_f[indf*2])
+    V2[index] = np.abs(v_f[indf*3])
     
-    R[index] = (V0[index] / np.fft.fft(ii)[indf]).real
+    R[index] = (v_f[indf] / i_f[indf]).real
     T[index] = Ts * index * Nw
     
-    
-plt.figure(1)
-plt.clf()
-plt.plot(T, R)
-plt.grid(True)
 
-f = plt.figure(2)
-f.clf()
-ax = f.subplots(1,1)
-ax.plot(T,np.abs(V0), 'k', label='fundamental')
-ax.plot(T,np.abs(V1), 'b', label='first harmonic')
-ax.plot(T,np.abs(V2), 'r', label='second harm.')
+# Strip the / out of the filename
+filename = '_'.join(filename.split('/'))
+# Drop the .dat
+filename = filename.split('.')[0]
+
+if tstart:
+	istart = int(tstart / t_window)
+	istop = int(tstop / t_window)
+else:
+	istart = 0
+	istop = -1
+
+# Resistance plot
+ax = lplot.init_fig('Time (s)', 'Resistance (M$\Omega$)')
+ax.plot(T[istart:istop], R[istart:istop], 'k')
+ax.set_ylim([0, 2*np.average(R[istart:istop])])
+ax.get_figure().savefig('frequencies/r_' + filename + '.png')
+
+ax = lplot.init_fig('Time (s)', 'FFT Magnitude (V)')
+ax.plot(T[istart:istop],V0[istart:istop], 'k', label='fundamental')
+ax.plot(T[istart:istop],V1[istart:istop], 'b', label='first harmonic')
+ax.plot(T[istart:istop],V2[istart:istop], 'r', label='second harm.')
+ax.set_ylim([0, 2*np.average(V0[istart:istop])])
 ax.legend(loc=0)
-ax.grid(True)
+ax.get_figure().savefig('frequencies/v_' + filename + '.png')
+
+ax = lplot.init_fig('Time (s)', 'FFT Magnitude (V)')
+ax.plot(T[istart:istop],V0[istart:istop], 'k', label='fundamental')
+ax.plot(T[istart:istop],V1[istart:istop], 'k--', label='first harmonic')
+ax.plot(T[istart:istop],V2[istart:istop], 'k-.', label='second harm.')
+ax.set_ylim([0, 2*np.average(V0[istart:istop])])
+ax.legend(loc=0)
+ax.get_figure().savefig('frequencies/v_' + filename + '_bw.png')
 
 plt.show()

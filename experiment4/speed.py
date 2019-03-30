@@ -40,6 +40,7 @@ excite_hz = 10.
 window_sec = 0.5
 
 ax1 = lplot.init_fig('Time (s)', 'Resistance (M$\Omega$)')
+ax2 = lplot.init_fig('Time (s)', 'Resistance (M$\Omega$)')
 
 tstart = 0.
 for speed,pstyle in zip(speeds_ipm,patch_styles):
@@ -48,6 +49,9 @@ for speed,pstyle in zip(speeds_ipm,patch_styles):
 		Rectangle( (tstart, 0.), tduration, .08, alpha=0.2, **pstyle))
 		
 	ax1.text(tstart + 0.5*tduration, 0.0, '%.1f\nipm'%speed, ha='center')
+	ax2.add_patch(\
+		Rectangle( (tstart, 0.), tduration, .08, fc='none', ec='k'))
+	ax2.text(tstart + 0.5*tduration, 0.0, '%.1f\nipm'%speed, ha='center')
 	tstart += tduration
 
 for thisfile,thisstyle in zip(sources,styles):
@@ -89,9 +93,14 @@ for thisfile,thisstyle in zip(sources,styles):
 		R.append( (v_f[iexcite] / i_f[iexcite]).real )
 		time.append(index / sample_hz)
 	ax1.plot(time, R,label='%0.2fmm Standoff'%(25.4*meta['so_in']),**thisstyle)
-	
+	ax2.plot(time, R,label='%0.2fmm Standoff'%(25.4*meta['so_in']),**thisstyle)
 
 ax1.set_ylim([0,0.08])
 ax1.legend(loc=0)
 ax1.get_figure().savefig('speed.png')
+
+ax2.set_ylim([0,0.08])
+ax2.legend(loc=0)
+ax2.get_figure().savefig('speed_bw.png')
+
 plt.show()

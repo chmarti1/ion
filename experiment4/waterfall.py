@@ -3,16 +3,20 @@
 import lconfig
 import os
 import matplotlib.pyplot as plt
+from matplotlib.colors import Colormap
 import numpy as np
 import sys, os
 import lplot
 
 lplot.set_defaults()
 
+cmap = plt.get_cmap('gray')
+
 # Window
 t_window = 0.5
 
-D = lconfig.LConf(sys.argv[1], data=True)
+filename = sys.argv[1]
+D = lconfig.LConf(filename, data=True)
 #D = lconfig.LConf('190222/test1.dat', data=True)
 i_window = D.get_index(t_window)
 
@@ -39,11 +43,23 @@ for index in range(0, Nt):
     T[index, :] = index * i_window * Ts
     W[index, :] = np.arange(0, Fs/2, Fs/2/Nw)
     
-ax = lplot.init_fig('Time (s)', 'Frequency (Hz)')
-ax.pcolor(T, W, V_F, vmax=-0.5, vmin=-3.5)
-ax.get_figure().savefig('voltage_v.png')
+# Get rid of the / in the filename
+filename = '_'.join(filename.split('/'))
+# kill off the .dat
+filename = filename.split('.')[0]
 
 ax = lplot.init_fig('Time (s)', 'Frequency (Hz)')
-ax.pcolor(T, W, I_F, vmax=1.11, vmin=-3.0)
-ax.get_figure().savefig('waterfall_i.png')
+ax.pcolor(T, W, V_F, vmax=-0.5, vmin=-3.5)
+ax.get_figure().savefig('waterfalls/v_' + filename +  '.png')
+ax = lplot.init_fig('Time (s)', 'Frequency (Hz)')
+ax.pcolor(T, W, V_F, vmax=-0.5, vmin=-3.5, cmap=cmap)
+ax.get_figure().savefig('waterfalls/v_' + filename +  '_bw.png')
+
+ax = lplot.init_fig('Time (s)', 'Frequency (Hz)')
+ax.pcolor(T, W, I_F, vmax=-0.5, vmin=-3.5)
+ax.get_figure().savefig('waterfalls/i_' + filename +  '.png')
+ax = lplot.init_fig('Time (s)', 'Frequency (Hz)')
+ax.pcolor(T, W, I_F, vmax=-0.5, vmin=-3.5, cmap=cmap)
+ax.get_figure().savefig('waterfalls/i_' + filename +  '_bw.png')
+
 plt.show()
