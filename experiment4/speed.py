@@ -4,10 +4,13 @@ import lconfig as lc
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import numpy as np
+import lplot
+
+lplot.set_defaults()
 
 sources = [\
-	'190315/test2.dat',
-	'190315/test3.dat',
+#	'190315/test2.dat',
+#	'190315/test3.dat',
 	'190322/test1.dat',
 	'190322/test2.dat',
 	'190325/test1.dat',
@@ -16,11 +19,11 @@ sources = [\
 length_in = 2.
 speeds_ipm = [10., 14., 16., 12., 8., 6.]
 styles = [\
-	{'ls':'none', 'marker':'o', 'ms':4, 'mec':'k', 'mfc':'w'},
-	{'ls':'none', 'marker':'^', 'ms':4, 'mec':'k', 'mfc':'w'},
+#	{'ls':'none', 'marker':'o', 'ms':4, 'mec':'k', 'mfc':'w'},
+#	{'ls':'none', 'marker':'^', 'ms':4, 'mec':'k', 'mfc':'w'},
 	{'ls':'none', 'marker':'s', 'ms':4, 'mec':'k', 'mfc':'w'},
-	{'ls':'none', 'marker':'d', 'ms':4, 'mec':'k', 'mfc':'w'},
-	{'ls':'none', 'marker':'o', 'ms':4, 'mec':'k', 'mfc':'k'},
+	{'ls':'none', 'marker':'^', 'ms':4, 'mec':'k', 'mfc':'w'},
+	{'ls':'none', 'marker':'s', 'ms':4, 'mec':'k', 'mfc':'k'},
 	{'ls':'none', 'marker':'^', 'ms':4, 'mec':'k', 'mfc':'k'}
 ]
 patch_styles = [\
@@ -36,15 +39,13 @@ patch_styles = [\
 excite_hz = 10.
 window_sec = 0.5
 
-f = plt.figure(1)
-f.clf()
-ax1 = f.add_subplot(111)
+ax1 = lplot.init_fig('Time (s)', 'Resistance (M$\Omega$)')
 
 tstart = 0.
 for speed,pstyle in zip(speeds_ipm,patch_styles):
 	tduration = length_in * 60. / speed
 	ax1.add_patch(\
-		Rectangle( (tstart, 0.), tduration, .05, alpha=0.2, **pstyle))
+		Rectangle( (tstart, 0.), tduration, .08, alpha=0.2, **pstyle))
 		
 	ax1.text(tstart + 0.5*tduration, 0.0, '%.1f\nipm'%speed, ha='center')
 	tstart += tduration
@@ -87,11 +88,10 @@ for thisfile,thisstyle in zip(sources,styles):
 		
 		R.append( (v_f[iexcite] / i_f[iexcite]).real )
 		time.append(index / sample_hz)
-	ax1.plot(time, R,label=thisfile,**thisstyle)
+	ax1.plot(time, R,label='%0.2fmm Standoff'%(25.4*meta['so_in']),**thisstyle)
 	
 
+ax1.set_ylim([0,0.08])
 ax1.legend(loc=0)
-ax1.grid(True)
-ax1.set_xlabel('Time (sec)')
-ax1.set_ylabel('Resistance (M$\Omega$)')
+ax1.get_figure().savefig('speed.png')
 plt.show()

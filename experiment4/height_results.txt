@@ -1,41 +1,62 @@
 Using the tests shown below, fits are produced for R(s) and s(R)
 Confidence intervals were established for 95% certainty (+/- 1.9 std)
-190320/test2.dat
-190320/test4.dat
-190320/test5.dat
-190320/test6.dat
-190320/test9.dat
-190320/test10.dat
-190320/test11.dat
-190322/test4.dat
-190322/test5.dat
-190322/test6.dat
-190322/test7.dat
-190322/test15.dat
-190327/test8.dat
-190327/test9.dat
-190327/test10.dat
-190327/test11.dat
-190327/test12.dat
-190327/test13.dat
-190327/test14.dat
-190327/test15.dat
-190327/test16.dat
-190327/test17.dat
-190327/test18.dat
-190327/test19.dat
+Tests marked False were not used for the curve fits
+('190320/test1.dat', False)
+('190320/test2.dat', True)
+('190320/test3.dat', False)
+('190320/test4.dat', True)
+('190320/test5.dat', True)
+('190320/test6.dat', True)
+('190320/test7.dat', False)
+('190320/test8.dat', False)
+('190320/test9.dat', True)
+('190320/test10.dat', True)
+('190320/test11.dat', True)
+('190322/test4.dat', True)
+('190322/test5.dat', True)
+('190322/test6.dat', True)
+('190322/test7.dat', True)
+('190322/test8.dat', False)
+('190322/test9.dat', False)
+('190322/test10.dat', False)
+('190322/test11.dat', False)
+('190322/test12.dat', False)
+('190322/test13.dat', False)
+('190322/test14.dat', False)
+('190322/test15.dat', True)
+('190327/test1.dat', False)
+('190327/test2.dat', False)
+('190327/test3.dat', False)
+('190327/test4.dat', False)
+('190327/test5.dat', False)
+('190327/test6.dat', False)
+('190327/test7.dat', False)
+('190327/test8.dat', True)
+('190327/test9.dat', True)
+('190327/test10.dat', True)
+('190327/test11.dat', True)
+('190327/test12.dat', True)
+('190327/test13.dat', True)
+('190327/test14.dat', True)
+('190327/test15.dat', True)
+('190327/test16.dat', True)
+('190327/test17.dat', True)
+('190327/test18.dat', True)
+('190327/test19.dat', True)
+With s in mm and R in MOhm
 ***=====================***
-R = 0.072061 s + 0.020972
+R = 2.837045e-03 s + 2.097188e-02
 With a 95\% confidence interval
-slope = 0.072061 +/- 0.010862
-offset = 0.020972 +/- 0.002307
+slope = 2.837045e-03 +/- 4.276186e-04
+offset = 2.097188e-02 +/- 2.306740e-03
 Uncertainty in the fit for R is
-var_R = 0.000033 s^2 + -0.000013 s + 0.000001
+var_R = 5.065310e-08 s^2 + -5.199963e-07 s + 1.473975e-06
 ***=====================***
-s = 12.325766 R + -0.235903
+s = 313.074464 R + -5.991933
 With a 95\% confidence interval
-slope = 12.325766 +/- 1.857823
-offset = -0.235903 +/- 0.066665
+slope = 313.074464 +/- 47.188707
+offset = -5.991933 +/- 1.693294
 Uncertainty in the fit for s is
-var_s = 0.956096 R^2 + -0.067948 R + 0.001231
+var_s = 616.834917 R^2 + -43.837467 R + 0.794251
 ***=====================***
+

@@ -3,18 +3,21 @@
 import lconfig as lc
 import matplotlib.pyplot as plt
 import numpy as np
+import lplot
+
+lplot.set_defaults()
 
 sources = [\
-	'190315/test4.dat',
+#	'190315/test4.dat',
 	'190301/test6.dat',
 	'190301/test7.dat',
 	'190322/test3.dat']
 	
 styles = [\
-	{'ls':'none', 'marker':'s', 'mfc':'w', 'mec':'k', 'ms':4},
+#	{'ls':'none', 'marker':'s', 'mfc':'w', 'mec':'k', 'ms':4},
 	{'ls':'none', 'marker':'o', 'mfc':'w', 'mec':'k', 'ms':4},
 	{'ls':'none', 'marker':'^', 'mfc':'w', 'mec':'k', 'ms':4},
-	{'ls':'none', 'marker':'d', 'mfc':'w', 'mec':'k', 'ms':4}]
+	{'ls':'none', 'marker':'d', 'mfc':'k', 'mec':'k', 'ms':4}]
 	
 # Parameters
 excite_hz = 10.
@@ -24,13 +27,7 @@ R_mean = []
 R_std = []
 SO_in = []
 
-f = plt.figure(1)
-f.clf()
-ax1 = f.add_subplot(111)
-
-f = plt.figure(2)
-f.clf()
-ax2 = f.add_subplot(111)
+ax1, _ax1 = lplot.init_xxyy('Standoff (mm)', 'Resistance (in)', x2label='Standoff (in)')
 
 for thisfile,thisstyle in zip(sources, styles):
 	
@@ -41,8 +38,8 @@ for thisfile,thisstyle in zip(sources, styles):
 	istart = thisdata.get_index(meta['start_sec'])
 	istop = thisdata.get_index(meta['stop_sec'])
 	# Find the standoff and rise
-	so_init = meta['so_in']
-	so_rise = meta['rise_in']
+	so_init = 25.4*meta['so_in']
+	so_rise = 25.4*meta['rise_in']
 	# How many data points are there in the cut set
 	Nd = istop - istart
 
@@ -80,10 +77,9 @@ for thisfile,thisstyle in zip(sources, styles):
 		so.append(so_init + so_rise * float(index) / Nn)
 	ax1.plot(so, R, label=thisfile, **thisstyle)
 	
-ax1.legend(loc=0)
-ax1.grid(True)
-ax1.set_xlabel('Standoff (in)')
-ax1.set_ylabel('Resistance (M$\Omega$)')
+#ax1.legend(loc=0)
 ax1.set_ylim([0, 0.05])
-ax1.set_xlim([0, 0.25])
+ax1.set_xlim([2.5, 6.5])
+lplot.scale_xxyy(ax1, xscale=1./25.4)
+ax1.get_figure().savefig('incline.png')
 plt.show()
