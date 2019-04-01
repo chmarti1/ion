@@ -36,9 +36,10 @@ Nt = D.ndata()/Nw
 
 T = np.zeros((Nt,))
 R = np.zeros((Nt,))
-V0 = np.zeros((Nt,), dtype=complex)
-V1 = np.zeros((Nt,), dtype=complex)
-V2 = np.zeros((Nt,), dtype=complex)
+VDC = np.zeros((Nt,))
+V0 = np.zeros((Nt,))
+V1 = np.zeros((Nt,))
+V2 = np.zeros((Nt,))
 
 for index in range(0, Nt):
     ii = I[index*Nw:(index+1)*Nw]
@@ -47,6 +48,7 @@ for index in range(0, Nt):
     v_f = np.fft.fft(vv) / Nw
     i_f = np.fft.fft(ii) / Nw
     
+    VDC[index] = np.abs(v_f[0])
     V0[index] = np.abs(v_f[indf])
     V1[index] = np.abs(v_f[indf*2])
     V2[index] = np.abs(v_f[indf*3])
@@ -71,21 +73,25 @@ else:
 ax = lplot.init_fig('Time (s)', 'Resistance (M$\Omega$)')
 ax.plot(T[istart:istop], R[istart:istop], 'k')
 ax.set_ylim([0, 2*np.average(R[istart:istop])])
-ax.get_figure().savefig('frequencies/r_' + filename + '.png')
+#ax.get_figure().savefig('frequencies/r_' + filename + '.png')
 
 ax = lplot.init_fig('Time (s)', 'FFT Magnitude (V)')
+ax.plot(T[istart:istop],VDC[istart:istop], 'g', label='DC')
 ax.plot(T[istart:istop],V0[istart:istop], 'k', label='fundamental')
 ax.plot(T[istart:istop],V1[istart:istop], 'b', label='first harmonic')
 ax.plot(T[istart:istop],V2[istart:istop], 'r', label='second harm.')
 ax.set_ylim([0, 2*np.average(V0[istart:istop])])
+#ax.set_ylim([0, 10.5])
 ax.legend(loc=0)
 ax.get_figure().savefig('frequencies/v_' + filename + '.png')
 
 ax = lplot.init_fig('Time (s)', 'FFT Magnitude (V)')
+ax.plot(T[istart:istop],VDC[istart:istop], 'k-.', label='DC')
 ax.plot(T[istart:istop],V0[istart:istop], 'k', label='fundamental')
 ax.plot(T[istart:istop],V1[istart:istop], 'k--', label='first harmonic')
-ax.plot(T[istart:istop],V2[istart:istop], 'k-.', label='second harm.')
+ax.plot(T[istart:istop],V2[istart:istop], 'k:', label='second harm.')
 ax.set_ylim([0, 2*np.average(V0[istart:istop])])
+#ax.set_ylim([0, 10.5])
 ax.legend(loc=0)
 ax.get_figure().savefig('frequencies/v_' + filename + '_bw.png')
 

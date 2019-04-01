@@ -1,0 +1,12 @@
+In MANUAL directory, a series of six wire measurements were taken while moving the cutting machine manually.  
+
+In the base directory here, tests were taken while advancing the torch into the disc.  The test was stopped because the urethane belt overheated.
+00.dat	0inches
+01.dat  0.021
+02.dat	0.043
+03.dat	0.066
+04.dat	0.089
+
+The a nominal 20V DC was applied to the torch.  With 16.7V at the torch, with a 1M resistor, there was a 0.780 signal at the DAC (see baseline.dat).
+
+These are the first successful measurements with the Langmuir probe.

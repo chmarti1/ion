@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+# Generate a waterfall diagram of the test
+# $./waterfall.py 190327/test1.dat
+#
+# plots are saved to the waterfalls directory
+
 import lconfig
 import os
 import matplotlib.pyplot as plt

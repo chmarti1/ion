@@ -10,11 +10,16 @@ aichannel 0
 ainegative 199
 airange 10.000000
 airesolution 0
+ailabel "Voltage"
 
 aichannel 1
 ainegative 199
 airange 10.000000
 airesolution 0
+ailabel "Current"
+aicalunits "uA"
+aicalslope 25.270267
+aicalzero 5.37944e-3
 
 # Analog Outputs
 aochannel 0
