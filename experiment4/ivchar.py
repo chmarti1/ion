@@ -8,7 +8,29 @@ import lplot
 import numpy as np
 import sys, os
 
+lplot.set_defaults()
+
+gray = [0.8, 0.8, 0.8]
+
 DIR = 'ivchar'
+
+styles = [\
+	{'marker':'d', 'mec':'k', 'mfc':'w', 'ms':4, 'ls':'none'},
+#	{'marker':'d', 'mec':'k', 'mfc':gray, 'ms':4, 'ls':'none'},
+	{'marker':'d', 'mec':'k', 'mfc':'k', 'ms':4, 'ls':'none'},
+	{'marker':'s', 'mec':'k', 'mfc':'w', 'ms':4, 'ls':'none'},
+#	{'marker':'s', 'mec':'k', 'mfc':gray, 'ms':4, 'ls':'none'},
+	{'marker':'s', 'mec':'k', 'mfc':'k', 'ms':4, 'ls':'none'},
+	{'marker':'v', 'mec':'k', 'mfc':'w', 'ms':4, 'ls':'none'},
+#	{'marker':'v', 'mec':'k', 'mfc':gray, 'ms':4, 'ls':'none'},
+	{'marker':'v', 'mec':'k', 'mfc':'k', 'ms':4, 'ls':'none'},
+	{'marker':'o', 'mec':'k', 'mfc':'w', 'ms':4, 'ls':'none'},
+#	{'marker':'o', 'mec':'k', 'mfc':gray, 'ms':4, 'ls':'none'},
+	{'marker':'o', 'mec':'k', 'mfc':'k', 'ms':4, 'ls':'none'},
+	{'marker':'^', 'mec':'k', 'mfc':'w', 'ms':4, 'ls':'none'},
+#	{'marker':'^', 'mec':'k', 'mfc':gray, 'ms':4, 'ls':'none'},
+	{'marker':'^', 'mec':'k', 'mfc':'k', 'ms':4, 'ls':'none'},
+]
 
 lplot.set_defaults()
 
@@ -45,23 +67,34 @@ else:
 Fs = D.get(0,'samplehz')
 Ts = 1./Fs
 
-V = D.get_channel('Voltage')
-I = D.get_channel('Current')
+
+# Build a list of times at which to perform the anlaysis
+# Were there specific times requested at the command prompt?
+t_list = None
+if len(sys.argv) > 2:
+	t_array = np.array([float(this) for this in sys.argv[2:]])
+else:
+	# Number of samples between window beginnings
+	Nt = D.get_index(t_sample)
+	t_array = D.get_time(downsample=Nt)
 
 
-# Number of samples in a window
-Nwindow = D.get_index(t_window)
-# Number of samples between window beginnings
-Nt = D.get_index(t_sample)
-# Number of plots/samples
-Ns = int(D.ndata() / Nt)
 
-for ii in range(0, D.ndata(), Nt):
-	print('Generating figure ' + repr(ii) + '.png')
+ax1 = lplot.init_fig('Voltage (V)', 'Current ($\mu$A)')
+
+for ii, t in enumerate(t_array):
+	ii = ii%len(styles)
+	figname = '%0.3f.png'%t
+	print('Generating figure ' + figname)
 	ax = lplot.init_fig('Voltage (V)', 'Current ($\mu$A)')
-	ax.plot(V[ii:ii+Nwindow], I[ii:ii+Nwindow], ls='none', marker='d', ms=4, mec='k', mfc='w')
-	ax.set_title('T = %0.1fs'%(ii*Ts))
-	ax.get_figure().savefig(os.path.join(target, repr(ii)+'.png'))
+	V = D.get_channel('Voltage', start=t, stop=(t+t_window))
+	I = D.get_channel('Current', start=t, stop=(t+t_window))
+	ax.plot(V, I, **styles[ii])
+	ax1.plot(V,I,label='%0.2fs'%t, **styles[ii])
+	ax.set_title('T = %0.1fs'%(t))
+	ax.get_figure().savefig(os.path.join(target, figname))
 	plt.close(ax.get_figure())
 
+ax1.legend(loc=0)
+ax1.get_figure().savefig(os.path.join(target, 'total.png'))
 plt.show()
