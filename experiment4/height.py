@@ -7,11 +7,19 @@ import lplot
 
 lplot.set_defaults()
 
-styles = [{'marker':'^', 'mfc':'k', 'mec':'k', 'ls':'none'},
+styles = [{},
         {'marker':'o', 'mfc':'k', 'mec':'k', 'ls':'none'},
         {'marker':'x', 'mfc':'w', 'mec':'k', 'ls':'none'},
         {'marker':'o', 'mfc':'w', 'mec':'k', 'ls':'none'},
-        {'marker':'s', 'mfc':'w', 'mec':'k', 'ls':'none'}]
+        {'marker':'s', 'mfc':'w', 'mec':'k', 'ls':'none'},
+        {'marker':'^', 'mfc':'k', 'mec':'k', 'ls':'none'}]
+        
+labels = ['NONE',
+		'0-25uA sine',
+		'5-15uA sine',
+		'0-10uA sine',
+		'f/o 0.65 0-25uA',
+		'4.8bar, 0-25uA']
 
 # Each source is listed by a file, a group index, and a True/False flag
 # The group index indicates how the data point should be plotted
@@ -35,14 +43,14 @@ sources = [\
     ('190322/test5.dat', 1, True, True),
     ('190322/test6.dat', 1, True, True),
     ('190322/test7.dat', 1, True, True),
-    ('190322/test8.dat', 4, False, False),
-    ('190322/test9.dat', 4, False, False),
-    ('190322/test10.dat', 4, False, False),
-    ('190322/test11.dat', 4, False, False),
-    ('190322/test12.dat', 4, False, False),
-    ('190322/test13.dat', 4, False, False),
-    ('190322/test14.dat', 1, False, False),    # Evidence that the plate moved during the test
-    ('190322/test15.dat', 1, True, True),
+    ('190322/test8.dat', 4, True, False),
+    ('190322/test9.dat', 4, True, False),
+    ('190322/test10.dat', 4, True, False),
+    ('190322/test11.dat', 4, True, False),
+    ('190322/test12.dat', 4, True, False),
+    ('190322/test13.dat', 4, True, False),
+    ('190322/test14.dat', 5, True, True),    # Evidence that the plate moved during the test
+    ('190322/test15.dat', 5, True, True),
     ('190327/test1.dat', 2, True, False),
     ('190327/test2.dat', 2, True, False),
     ('190327/test3.dat', 2, True, False),
@@ -74,12 +82,6 @@ SO_mm = []
 group = []
 ifit = []
 iplot = []
-
-ax1, _ax1 = lplot.init_xxyy(xlabel='Standoff (mm)', ylabel='Resistance (M$\Omega$)',
-        x2label='Standoff (in)')
-
-ax2, _ax2 = lplot.init_xxyy(xlabel='Standoff (mm)', ylabel='Resistance (M$\Omega$)',
-        x2label='Standoff (in)')
 
 for thisfile, thisgroup, thisplot, thisfit in sources:
     print(thisfile, thisplot, thisfit)
@@ -130,8 +132,6 @@ for thisfile, thisgroup, thisplot, thisfit in sources:
     Rmean = np.average(R)
     Rstd = np.std(R)
     
-    print(Rstd)
-    
     # Accumulate points for the calibration fit
     R_std.append(Rstd)
     R_mean.append(Rmean)
@@ -148,35 +148,27 @@ group = np.asarray(group, dtype=int)
 ifit = np.asarray(ifit, dtype=bool)
 iplot = np.asarray(iplot, dtype=bool)
 
-# Plot the groups
-I = np.logical_and((group==1), iplot)
-ax1.plot(SO_mm[I], R_mean[I], label='0-25uA sine', **styles[1])
-I = np.logical_and((group==3), iplot)
-ax1.plot(SO_mm[I], R_mean[I], label='5-15uA sine', **styles[3])
-I = np.logical_and((group==2), iplot)
-ax1.plot(SO_mm[I], R_mean[I], label='0-10uA sine', **styles[2])
-I = (group==4)
-ax1.plot(SO_mm[I], R_mean[I], label='f/o 0.65, 0-25uA', **styles[4])
+print('***=====================***')
+print('Group : tot  plt  fit')
 
+# Plot the groups
+ax1, _ax1 = lplot.init_xxyy(xlabel='Standoff (mm)', ylabel='Resistance (M$\Omega$)',
+        x2label='Standoff (in)')
+for thisgroup in range(1,len(styles)):
+	I = np.logical_and((group==thisgroup), iplot)
+	ax1.plot(SO_mm[I], R_mean[I], label=labels[thisgroup], **styles[thisgroup])
+	print(' %4d : %3d  %3d  %3d  %s'%(\
+			thisgroup, 
+			np.sum(I), 
+			np.sum(np.logical_and(I,iplot)), 
+			np.sum(np.logical_and(I,ifit)),
+			labels[thisgroup]))
+print('***=====================***')
 #ax2.errorbar(SO_in, R_mean, xerr=np.abs(rise_in), yerr=2*np.array(R_std), fmt='ko', capsize=2, ecolor='k')
 
 # Curve fit R(s)
 coef, cov = np.polyfit(SO_mm[ifit], R_mean[ifit], 1, cov=True)
 var_coef = [cov[0,0], 2*cov[1,0], cov[1,1]]
-
-print('Group : tot  plt  fit')
-I = (group==1)
-print('    1 : %3d  %3d  %3d'%(\
-        np.sum(I), np.sum(np.logical_and(I,iplot)), np.sum(np.logical_and(I,ifit))))
-I = (group==2)
-print('    2 : %3d  %3d  %3d'%(\
-        np.sum(I), np.sum(np.logical_and(I,iplot)), np.sum(np.logical_and(I,ifit))))
-I = (group==3)
-print('    3 : %3d  %3d  %3d'%(\
-        np.sum(I), np.sum(np.logical_and(I,iplot)), np.sum(np.logical_and(I,ifit))))
-I = (group==4)
-print('    4 : %3d  %3d  %3d'%(\
-        np.sum(I), np.sum(np.logical_and(I,iplot)), np.sum(np.logical_and(I,ifit))))
 
 print('With s in mm and R in MOhm')
 print('***=====================***')
@@ -186,6 +178,9 @@ print('slope = %e +/- %e'%(coef[0], 1.9*np.sqrt(cov[0,0])))
 print('offset = %e +/- %e'%(coef[1], 1.9*np.sqrt(cov[1,1])))
 print('Uncertainty in the fit for R is')
 print('var_R = %e s^2 + %e s + %e'%tuple(var_coef))
+print('var_m = %e'%float(cov[0,0]))
+print('var_b = %e'%float(cov[1,1]))
+print('cov[m,b] = %e'%float(cov[0,1]))
 
 #ax2.plot(s, R, 'k')
 #ax2.plot(s, R + 3*std, 'k--')
@@ -205,6 +200,9 @@ print('slope = %f +/- %f'%(coef[0], 1.9*np.sqrt(cov[0,0])))
 print('offset = %f +/- %f'%(coef[1], 1.9*np.sqrt(cov[1,1])))
 print('Uncertainty in the fit for s is')
 print('var_s = %f R^2 + %f R + %f'%tuple(var_coef))
+print('var_m = %e'%float(cov[0,0]))
+print('var_b = %e'%float(cov[1,1]))
+print('cov[m,b] = %e'%float(cov[0,1]))
 
 ax1.plot(s, R, 'k')
 ax1.plot(s + 1.9*std, R, 'k--')
@@ -223,5 +221,9 @@ print('so (mm)  std_dev (MOhm)')
 so_set = set(SO_mm)
 for this_so in so_set:
     print('%7f  '%this_so + repr(R_std[SO_mm == this_so]))
+    
+ax2 = lplot.init_fig(xlabel='Resistance Noise (k$\Omega$)', ylabel='Count')
+ax2.hist(1e3 * R_std, fc='k')
+ax2.get_figure().savefig('rms.png')
 
 plt.show(block=False)

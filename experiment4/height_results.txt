@@ -16,13 +16,13 @@ Tests marked False were not used for the curve fits
 ('190322/test5.dat', True, True)
 ('190322/test6.dat', True, True)
 ('190322/test7.dat', True, True)
-('190322/test8.dat', False, False)
-('190322/test9.dat', False, False)
-('190322/test10.dat', False, False)
-('190322/test11.dat', False, False)
-('190322/test12.dat', False, False)
-('190322/test13.dat', False, False)
-('190322/test14.dat', False, False)
+('190322/test8.dat', True, False)
+('190322/test9.dat', True, False)
+('190322/test10.dat', True, False)
+('190322/test11.dat', True, False)
+('190322/test12.dat', True, False)
+('190322/test13.dat', True, False)
+('190322/test14.dat', True, True)
 ('190322/test15.dat', True, True)
 ('190327/test1.dat', True, False)
 ('190327/test2.dat', True, False)
@@ -43,24 +43,40 @@ Tests marked False were not used for the curve fits
 ('190327/test17.dat', True, True)
 ('190327/test18.dat', True, True)
 ('190327/test19.dat', True, True)
+***=====================***
 Group : tot  plt  fit
-    1 :  17   12   12
-    2 :   7    7    0
-    3 :  12   12   12
-    4 :   6    0    0
+    1 :  11   11   11  0-25uA sine
+    2 :   7    7    0  5-15uA sine
+    3 :  12   12   12  0-10uA sine
+    4 :   6    6    0  f/o 0.65 0-25uA
+    5 :   2    2    2  4.8bar, 0-25uA
+***=====================***
 With s in mm and R in MOhm
 ***=====================***
-R = 2.837045e-03 s + 2.097188e-02
+R = 2.791539e-03 s + 2.130014e-02
 With a 95\% confidence interval
-slope = 2.837045e-03 +/- 4.276186e-04
-offset = 2.097188e-02 +/- 2.306740e-03
+slope = 2.791539e-03 +/- 4.287515e-04
+offset = 2.130014e-02 +/- 2.289552e-03
 Uncertainty in the fit for R is
-var_R = 5.065310e-08 s^2 + -5.199963e-07 s + 1.473975e-06
+var_R = 5.092184e-08 s^2 + -5.173659e-07 s + 1.452091e-06
 ***=====================***
-s = 313.074464 R + -5.991933
+s = 314.999273 R + -6.096540
 With a 95\% confidence interval
-slope = 313.074464 +/- 47.188707
-offset = -5.991933 +/- 1.693294
+slope = 314.999273 +/- 48.380626
+offset = -6.096540 +/- 1.732895
 Uncertainty in the fit for s is
-var_s = 616.834917 R^2 + -43.837467 R + 0.794251
+var_s = 648.389196 R^2 + -46.011203 R + 0.831835
 ***=====================***
+so (mm)  std_dev (MOhm)
+6.350000  array([ 0.00154359,  0.00156049,  0.00183242,  0.00161651,  0.00129688,
+        0.0018646 ,  0.00194049,  0.00239489,  0.00266614])
+2.540000  array([ 0.0017051 ,  0.00161642,  0.00157787,  0.00055124,  0.00265157,
+        0.00272424,  0.00148922])
+5.080000  array([ 0.0026228 ,  0.00184175,  0.00173198,  0.00228083,  0.00127222,
+        0.00492067,  0.00277475,  0.0026278 ])
+7.620000  array([ 0.00151077,  0.00257804,  0.00218855,  0.00194401,  0.00196089,
+        0.00213517,  0.00244735])
+3.810000  array([ 0.00270111,  0.00189945,  0.00121238,  0.00139836,  0.00242122,
+        0.00253968,  0.00425106,  0.0019187 ,  0.0040405 ,  0.00320736,
+        0.0030682 ])
+
