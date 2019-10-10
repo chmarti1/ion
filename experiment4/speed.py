@@ -48,10 +48,10 @@ for speed,pstyle in zip(speeds_ipm,patch_styles):
 	ax1.add_patch(\
 		Rectangle( (tstart, 0.), tduration, .08, alpha=0.2, **pstyle))
 		
-	ax1.text(tstart + 0.5*tduration, 0.0, '%.1f\nipm'%speed, ha='center')
+	ax1.text(tstart + 0.5*tduration, 0.0, '%.0f\nmm/min\n%.1f\nipm'%(25.4*speed,speed), ha='center', fontsize=10)
 	ax2.add_patch(\
 		Rectangle( (tstart, 0.), tduration, .08, fc='none', ec='k'))
-	ax2.text(tstart + 0.5*tduration, 0.0, '%.1f\nipm'%speed, ha='center')
+	ax2.text(tstart + 0.5*tduration, 0.0, '%.0f\nmm/min\n%.1f\nipm'%(25.4*speed,speed), ha='center', fontsize=10)
 	tstart += tduration
 
 for thisfile,thisstyle in zip(sources,styles):

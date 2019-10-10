@@ -27,7 +27,7 @@ R_mean = []
 R_std = []
 SO_in = []
 
-ax1, _ax1 = lplot.init_xxyy('Standoff (mm)', 'Resistance (in)', x2label='Standoff (in)')
+ax1, _ax1 = lplot.init_xxyy('Standoff (mm)', 'Resistance (M$\Omega$)', x2label='Standoff (in)')
 
 for thisfile,thisstyle in zip(sources, styles):
 	

@@ -148,7 +148,8 @@ I = np.logical_and((group==1), incl)
 ax1.plot(SO_mm[I], R_mean[I], label='0-25uA sine', **styles[1])
 I = np.logical_and((group==3), incl)
 ax1.plot(SO_mm[I], R_mean[I], label='5-15uA sine', **styles[3])
-
+I = group==2
+ax1.plot(SO_mm[I], R_mean[I], label='0-10uA sine', **styles[2])
 
 #ax2.errorbar(SO_in, R_mean, xerr=np.abs(rise_in), yerr=2*np.array(R_std), fmt='ko', capsize=2, ecolor='k')
 
