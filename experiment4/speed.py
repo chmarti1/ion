@@ -6,7 +6,7 @@ from matplotlib.patches import Rectangle
 import numpy as np
 import lplot
 
-lplot.set_defaults()
+lplot.set_defaults(font_size=16, legend_font_size=16)
 
 sources = [\
 #	'190315/test2.dat',
@@ -48,10 +48,10 @@ for speed,pstyle in zip(speeds_ipm,patch_styles):
 	ax1.add_patch(\
 		Rectangle( (tstart, 0.), tduration, .08, alpha=0.2, **pstyle))
 		
-	ax1.text(tstart + 0.5*tduration, 0.0, '%.0f\nmm/min\n%.1f\nipm'%(25.4*speed,speed), ha='center', fontsize=10)
+	ax1.text(tstart + 0.5*tduration, 0.0, '%.0f\nmm/min\n%.1f\nipm'%(25.4*speed,speed), ha='center', fontsize=11)
 	ax2.add_patch(\
 		Rectangle( (tstart, 0.), tduration, .08, fc='none', ec='k'))
-	ax2.text(tstart + 0.5*tduration, 0.0, '%.0f\nmm/min\n%.1f\nipm'%(25.4*speed,speed), ha='center', fontsize=10)
+	ax2.text(tstart + 0.5*tduration, 0.0, '%.0f\nmm/min\n%.1f\nipm'%(25.4*speed,speed), ha='center', fontsize=11)
 	tstart += tduration
 
 for thisfile,thisstyle in zip(sources,styles):

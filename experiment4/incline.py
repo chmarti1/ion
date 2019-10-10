@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import lplot
 
-lplot.set_defaults()
+lplot.set_defaults(font_size=16, legend_font_size=16)
 
 sources = [\
 #	'190315/test4.dat',

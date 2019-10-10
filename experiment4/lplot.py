@@ -10,6 +10,7 @@ def set_defaults(font_size=12., legend_font_size=12., figure_size=(4., 3.),
     """Applies plot style defaults to rcParams
 """
     plt.rcParams['font.size'] = font_size
+    plt.rcParams['figure.titlesize'] = font_size
     plt.rcParams['legend.fontsize'] = legend_font_size
     plt.rcParams['figure.dpi'] = screen_dpi
     plt.rcParams['savefig.dpi'] = export_dpi
@@ -80,11 +81,14 @@ The size indicates the size of the ruler in the units specified.
     return ax
 
 
-def init_fig(xlabel,ylabel,label_size=12.,figure_size=(8.,6.)):
+def init_fig(xlabel,ylabel,label_size=None,figure_size=(8.,6.)):
     """set up a figure with a single axes
     ax = init_fig(xlabel,ylabel,size=None)
 Returns the axis for plotting    
 """
+    if label_size is None:
+        label_size = plt.rcParams['font.size']
+
     dpi = plt.rcParams['figure.dpi']
     font_size = plt.rcParams['font.size']
     figure_height = figure_size[1] * dpi
@@ -106,7 +110,7 @@ Returns the axis for plotting
     return ax
 
 
-def init_xxyy(xlabel,ylabel,x2label=None,y2label=None,label_size=12.,figure_size=(8.,6.)):
+def init_xxyy(xlabel,ylabel,x2label=None,y2label=None,label_size=None,figure_size=(8.,6.)):
     """set up a figure with two axes overlayed
     ax1,ax2 = init_xxyy(xlabel,ylabel,x2label=None,y2label=None)
 
@@ -124,12 +128,16 @@ Objects should be added to the figure by using ax1 commands
 Once plotting is complete, ax2  needs to be scaled appropriately.  Use the 
 scale_xxyy() function.
 """
+
+    if label_size is None:
+        label_size = plt.rcParams['font.size']
+
     ax1 = init_fig(xlabel,ylabel,label_size=label_size, figure_size=figure_size)
     f = ax1.get_figure()
     p = ax1.get_position()
     ax2 = f.add_axes(p,label=AX2_LABEL)
-    #ax2.set_facecolor('none')
-    ax2.set_axis_bgcolor('none')
+    ax2.set_facecolor('none')
+    #ax2.set_axis_bgcolor('none')
     axis = ax2.get_xaxis()
     axis.set_ticks_position('top')
     axis.set_label_position('top')

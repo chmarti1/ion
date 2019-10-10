@@ -13,7 +13,7 @@ import numpy as np
 import sys, os
 import lplot
 
-lplot.set_defaults()
+lplot.set_defaults(font_size=16, legend_font_size=16)
 
 cmap = plt.get_cmap('gray')
 

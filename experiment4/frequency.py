@@ -7,6 +7,8 @@ import numpy as np
 import sys, os
 import lplot
 
+lplot.set_defaults(font_size=16., legend_font_size=16)
+
 # Window
 t_window = 0.5
 # The excitaiton frequency
@@ -16,8 +18,8 @@ filename = sys.argv[1]
 tstart = None
 tstop = None
 if len(sys.argv) > 3:
-	tstart = float(sys.argv[2])
-	tstop = float(sys.argv[3])
+    tstart = float(sys.argv[2])
+    tstop = float(sys.argv[3])
 
 
 D = lconfig.LConf(filename, data=True)
@@ -63,11 +65,11 @@ filename = '_'.join(filename.split('/'))
 filename = filename.split('.')[0]
 
 if tstart:
-	istart = int(tstart / t_window)
-	istop = int(tstop / t_window)
+    istart = int(tstart / t_window)
+    istop = int(tstop / t_window)
 else:
-	istart = 0
-	istop = -1
+    istart = 0
+    istop = -1
 
 # Resistance plot
 ax = lplot.init_fig('Time (s)', 'Resistance (M$\Omega$)')
