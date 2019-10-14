@@ -10,3 +10,5 @@ POST1
 import os, sys
 from os import path
 import lconfig as lc
+
+d = lc.LConf('20191014142430/080.dat', data=True)
