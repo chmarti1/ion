@@ -8,7 +8,7 @@ import lplot
 import numpy as np
 import sys, os
 
-lplot.set_defaults()
+lplot.set_defaults(font_size=16, legend_font_size=16)
 
 gray = [0.8, 0.8, 0.8]
 
@@ -32,7 +32,6 @@ styles = [\
 	{'marker':'^', 'mec':'k', 'mfc':'k', 'ms':4, 'ls':'none'},
 ]
 
-lplot.set_defaults()
 
 # Window
 t_window = 0.5

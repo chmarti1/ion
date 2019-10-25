@@ -44,7 +44,7 @@ for xindex,x in enumerate(np.linspace(x_start, x_stop, x_steps)):
         exit(-1)
     time.sleep(1.)
     cmd = 'lcburst -c ' + configfile + ' -d ' + thisfile + \
-            ' -f x=%f -f y=%f -f theta=%f -f wire_length=%f -s initials=%s'%(x, y, rising_edge_angle, wire_length, initials)
+            ' -f x=%f -f y=%f -f theta=%f -f wire_length=%f -s who=\"%s\"'%(x, y, rising_edge_angle, wire_length, initials)
     print(cmd)
     if os.system(cmd):
         print('FAILED')

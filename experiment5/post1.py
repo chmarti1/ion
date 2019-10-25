@@ -16,8 +16,8 @@ import lconfig as lc
 source_dir = '20191016084713'   # which data set?
 use_long = False                 # Use the long or short pulse?
 
-show_start = -0.5
-show_stop = 0.5
+theta_start = -0.5
+theta_stop = 0.5
 
 source_dir = os.path.abspath(source_dir)
 target_dir = os.path.join(source_dir, 'post1')
@@ -77,16 +77,18 @@ for thisfile in contents:
         i_stop = d.ndata()-i_rising[-1]
         theta[i_rising[-1]:] = theta_edge + dt*np.arange(0,i_stop)
         
+        # Down-select for angles near the flame
+        I = np.logical_and(theta > theta_start, theta < theta_stop)
+        
         # Write the data
         outfile = os.path.join(target_dir, thisid+'.p1d')
         with open(outfile,'w') as ff:
             ff.write('x %f\n'%d.get_meta(0,'x'))
             #ff.write('y %f\n'%d.get_meta(0,'y'))
             #ff.write('wire_length %f\n'%d.get_meta(0,'wire_length'))
-            for tt, ii in zip(theta, d.get_channel(0)):
+            for tt, ii in zip(theta[I], d.get_channel(0)[I]):
                 ff.write('%.6f\t%.6f\n'%(tt,ii))
         
-        I = np.logical_and(theta > show_start, theta < show_stop)
         f = plt.figure(1)
         f.clf()
         f.set_size_inches(8,4)
