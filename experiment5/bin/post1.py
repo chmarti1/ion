@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lconfig as lc
 
-source_dir = '20191016084713'   # which data set?
+source_dir = '../data/20191016084713'   # which data set?
 use_long = False                 # Use the long or short pulse?
 
 theta_start = -0.5
