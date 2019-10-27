@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy import sparse
+import scipy.sparse.linalg as linalg
 import os, sys
 
 
@@ -135,14 +136,6 @@ nodes with 0.05 unit length spacing.
 
 >>> G = Grid(200, 150, .05)
 
-    OR
->>> G = Grid(2,2,1)
->>> G.N[0] = 200
->>> G.N[1] = 150
->>> G.N
-np.array([200, 150])
->>> G.delta = .05
-
 :: Node Coordinate System ::
 
 Nodes are indexed either sequentially with a single index, n, or by 
@@ -189,12 +182,17 @@ The following member methods interact with the grid elements
 :: Physical Size ::
 
 The dimensions of the grid's domain are delta*(Nx-1), delta*(Ny-1).
-This is returned by the dims funciton.
+This is returned by the dims() funciton.
 """
     def __init__(self, Nx, Ny, delta):
         self.N = np.array((Nx, Ny), dtype=int)
         self.delta = float(delta)
         self._yoffset = -self.delta * (self.N[1]-1) / 2.
+        # Initialize the solution matrices
+        size = self.N[0] * self.N[1]
+        self.A = sparse.lil_matrix((size, size), dtype=float)
+        self.B = sparse.lil_matrix((size,1), dtype=float)
+        self.X = None
     
     def ij_to_n(self, i,j):
         """Calculates the node index from the xy indices
@@ -420,48 +418,22 @@ theta is the wire angle from positive x in radians
         return sparse.csr_matrix(L)
 
 
+    def add_data(self, R, d, theta, I):
+        """Add data into the solution matrices
+    add_data(R, d, theta, I)
+    
+R is the radius from center of rotation to the wire tip in mm
+d is the distance from the grid origin to the center of rotation in mm
+theta is the wire angle from the x-axis in radians
+I is the wire current divided by the wire circumference (i_uA/pi/D_mm)
 
-class DataSet:
-    """The DataSet class interacts with raw data files to build a grid and a 
-solution vector.  The DataSet methods allow the application to calculate
-and manipulate the solution.
-
->>> DS = DataSet('/path/to/data')
+ADD_DATA() calls LAM() to construct a lambda vector for the point.  Then
+contributions to the A matrix and B vector are computed and added so
+that
+    A * X = B
+where X is the solution vector
 """
-    def __init__(self, datadir):
-        # Identify the data directory
-        self.datadir = os.path.abspath(datadir)
-        
-        configfile = os.path.join(self.datadir, 'wireconf.py')
-        self.config = {}
-        
-        if not os.path.isfile(configfile):
-            raise Exception('Could not find configuration file\n' + self.config['file'])
-        
-        # Parse the configuration file
-        try:
-            with open(configfile,'r') as ff:
-                exec(ff.read(), None, self.config)
-        except:
-            raise Exception('Failed to load the configuration file: ' + configfile)
-        
-        # Generate the grid
-        self.grid = Grid(self.config['grid_Nx'], 
-                self.config['grid_Ny'], self.config['grid_delta'])
+        L = self.lam(R,d,theta)
+        self.B += L*I
+        self.A += L*L.T
 
-        # Generate a result vector
-        self.X = sparse.lil_matrix((self.grid.size(),1), dtype=float)
-        
-        
-
-    def __getitem__(self, key):
-        if isinstance(key,tuple):
-            return self.X[self.grid.ij_to_n(*key),0]
-        return self.X[key,0]
-
-
-    def __setitem__(self,key,value):
-        if isinstance(key,tuple):
-            self.X[self.grid.ij_to_n(*key),0] = value
-        else:
-            self.X[key,0] = value
