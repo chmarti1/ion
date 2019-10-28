@@ -3,7 +3,7 @@
 import os
 
 data_dir = '../data'
-month_map = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
+month_map = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 contents = os.listdir(data_dir)
 contents.sort(reverse=True)
