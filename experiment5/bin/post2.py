@@ -38,8 +38,8 @@ B = sparse.lil_matrix(grid.size(), 1, dtype=float)
 # Define a data processing algorithm for parallelization
 # This opens the listed p1dfile and returns its contribution to the
 # deconvolution matrix
-def _p2proc(p1dfile):
-    dims = {'x':0., 'y':0., 'r':25.4*5, 'dw':25.4*.01}
+def _p2proc(p1dfile, grid):
+    dims = {'x':0., 'y':0., 'r':25.4*5, 'dw':25.4*.01, 'w':0., 'wstd':0.}
     line = 0
     with open(p1dfile,'r') as ff:
         print(p1dfile)
@@ -47,21 +47,22 @@ def _p2proc(p1dfile):
         thisline = ff.readline()
         line += 1
         while thisline:
-            elements = thisline.split()
-            if len(elements)!=2:
-                raise Exception('Syntax error on line %d in file %s\n'%(line, p1dfile))
-            # If the first element is no longer a parameter name
-            elif not elements[0].isalpha():
-                break
-            elif elements[0] not in dims:
-                raise Exception('Unrecognized dimensional parameter, %s, on line %d in file: %s'%(elements[0], line, p1dfile))
-            
-            try:
-                elements[1] = float(elements[1])
-            except:
-                raise Exception('Numerical syntax error on line %d in file %s\n'%(line, p1dfile))
-            dims[elements[0]] = elements[1]
-            
+            if thisline[0] != '#':
+                elements = thisline.split()
+                # If the first element is no longer a parameter name
+                if not elements[0].isalpha():
+                    break
+                elif len(elements)!=2:
+                    raise Exception('Syntax error on line %d in file %s\n'%(line, p1dfile))
+                elif elements[0] not in dims:
+                    raise Exception('Unrecognized dimensional parameter, %s, on line %d in file: %s'%(elements[0], line, p1dfile))
+                
+                try:
+                    elements[1] = float(elements[1])
+                except:
+                    raise Exception('Numerical syntax error on line %d in file %s\n'%(line, p1dfile))
+                dims[elements[0]] = elements[1]
+                
             thisline = ff.readline()
             line += 1
 
@@ -69,8 +70,6 @@ def _p2proc(p1dfile):
         x = dims['r'] - dims['x']
         dw = dims['dw']
 
-        thisline = ff.readline()
-        line += 1
         while thisline:
             elements = thisline.split()
             try:
@@ -84,9 +83,9 @@ def _p2proc(p1dfile):
             thisline = ff.readline()
             line += 1
 
-
 # Identify the data set directory from the command line argument
-source_spec = sys.argv[1]
+source_spec = '4713'
+#source_spec = sys.argv[1]
 # List all available data directories
 contents = os.listdir(data_dir)
 source_dir = None
@@ -132,8 +131,8 @@ for thisfile in contents:
     thisid = thisfile.split('.')[0]
     fullfile = os.path.join(post1_dir, thisfile)
     if os.path.isfile(fullfile) and thisfile.endswith('.p1d'):
-        pool.apply_async(_p2proc, args=(fullfile,))
-        #_p2proc(fullfile)
+        pool.apply_async(_p2proc, args=(fullfile,grid))
+        #_p2proc(fullfile, grid)
     
 pool.close()
 pool.join()

@@ -190,8 +190,8 @@ This is returned by the dims() funciton.
         self._yoffset = -self.delta * (self.N[1]-1) / 2.
         # Initialize the solution matrices
         size = self.N[0] * self.N[1]
-        self.A = sparse.lil_matrix((size, size), dtype=float)
-        self.B = sparse.lil_matrix((size,1), dtype=float)
+        self.A = sparse.csr_matrix((size, size), dtype=float)
+        self.B = sparse.csc_matrix((size,1), dtype=float)
         self.X = None
     
     def ij_to_n(self, i,j):
@@ -436,4 +436,3 @@ where X is the solution vector
         L = self.lam(R,d,theta)
         self.B += L*I
         self.A += L*L.T
-

@@ -56,6 +56,8 @@ def _p1proc(fullfile):
     
     # Produce an angle signal
     theta = np.ndarray((d.ndata(),), dtype=float)
+    # Log the transit time between pulses
+    w_rads = []
     
     # Extrapolate to establish the first samples
     dt = 2*np.pi / (i_rising[1] - i_rising[0])
@@ -64,6 +66,7 @@ def _p1proc(fullfile):
     theta[:i_rising[0]] = theta_edge + dt*np.arange(i_start,i_stop)
     # Loop through all full disc rotations
     for ii in range(len(i_rising)-1):
+        w_rads.append(2.*np.pi/(d.get_time()[i_rising[ii+1]] - d.get_time()[i_rising[ii]]))
         dt = 2*np.pi / (i_rising[ii+1] - i_rising[ii])
         theta[i_rising[ii]:i_rising[ii+1]] = theta_edge + dt* np.arange(i_rising[ii+1]-i_rising[ii])
     # Extrapolate to establish the final samples
@@ -85,13 +88,16 @@ def _p1proc(fullfile):
         #ff.write('y %f\n'%d.get_meta(0,'y'))
         #ff.write('r %f\n'%d.get_meta(0,'wire_length') + 101.6)
         #ff.write('dw %f\n'%d.get_meta(0,'wire_diameter'))
+        ff.write('w %f\n'%np.mean(w_rads))
+        ff.write('wstd %f\n'%np.std(w_rads))
+        ff.write('# theta(rad)\tcount\tmean(uA)\tmedian(uA)\tstd dev(uA)\n')
         for tt in np.arange(theta_start, theta_stop, theta_step):
             I = np.logical_and(theta >= tt, theta < tt+theta_step)
             count = np.sum(I)
             mean = np.mean(current_uA[I])
             median = np.median(current_uA[I])
             std = np.std(current_uA[I])
-            ff.write('%f\t%d\t%f\t%f\t%f\n'%(tt, count, mean, median, std))
+            ff.write('%f\t%d\t%f\t%f\t%f\n'%(tt+0.5*theta_step, count, mean, median, std))
             ax.plot(theta[I], current_uA[I], 'b.')
             ax.plot(tt, mean, 'g.')
             ax.plot(tt, median, 'r.')
