@@ -30,9 +30,6 @@ delta = 25./Ny  # grid size in mm
 
 # Initialize the grid
 grid = wt.Grid(Nx,Ny,delta)
-# Initialize solution matrices
-A = sparse.lil_matrix(grid.size(), grid.size(), dtype=float)
-B = sparse.lil_matrix(grid.size(), 1, dtype=float)
 
 
 # Define a data processing algorithm for parallelization
@@ -78,6 +75,7 @@ def _p2proc(p1dfile, grid):
             except:
                 raise Exception('Numerical syntax error on line %d in file %s\n'%(line, p1dfile))
             I = i_uA / np.pi / dw
+            # Fold in the data
             grid.add_data(r,x,theta,I)
 
             thisline = ff.readline()
@@ -132,7 +130,7 @@ for thisfile in contents:
     fullfile = os.path.join(post1_dir, thisfile)
     if os.path.isfile(fullfile) and thisfile.endswith('.p1d'):
         pool.apply_async(_p2proc, args=(fullfile,grid))
-        #_p2proc(fullfile, grid)
+        _p2proc(fullfile, grid)
     
 pool.close()
 pool.join()

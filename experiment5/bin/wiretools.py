@@ -8,6 +8,25 @@ import scipy.sparse.linalg as linalg
 import os, sys
 
 
+def _lil_remove_row(A, row):
+    """Given a sparse LIL matrix, remove a row in-place
+"""
+    if row>=A.shape[0]:
+        raise Exception('row is out or range for this matrix: (%d x %d)'%A.shape)
+    A.nnz -= len(A.data[row])
+    np.delete(A.data, row)
+    np.delete(A.rows, row)
+    A.shape[0] -= 1
+    
+    
+def _lil_remove_col(A, col):
+    """Given a sparse LIL matrix, remove a row and column with the same index in-place
+"""
+    if col>=A.shape[1]:
+        raise Exception('col is out of range for this matrix: (%d x %d)'%A.shape)
+    
+
+
 #=======================#
 # The LineSegment class #
 #=======================#
@@ -300,8 +319,9 @@ R is the wire radius from the center of rotation
 d is the distance between the center of rotation and the left-most node
 theta is the wire angle from positive x in radians
 """
-        # Initialize an empty lambda vector
-        L = sparse.lil_matrix((self.size(),1), dtype=float)
+        # Initialize an empty lambda vector and index array
+        L = []
+        Lindex = []
 
         # Search for the point where the wire first crosses the grid
         # gridLS is a line segment representing the grid's length along
@@ -315,7 +335,7 @@ theta is the wire angle from positive x in radians
         test, sw, sg = wireLS.intersect(gridLS, s=True)
         # If the segments do not intersect, just return zeros
         if not test:
-            return sparse.csr_matrix(L)
+            return sparse.csr_matrix((self.size(),1), dtype=float)
             
         # The wire DOES intersect the grid.  At which j index?
         ii = 0
@@ -383,14 +403,22 @@ theta is the wire angle from positive x in radians
             PHI11 = dp[0]*dp[1]/3. + dp[0]*p0[1]/2. + dp[1]*p0[0]/2. + p0[0]*p0[1]
             
             # modify the lambda vector
-            n = self.ij_to_n(ii,jj)
-            L[n,0] += abs_dp*PHI00
-            n = self.ij_to_n(ii+1,jj)
-            L[n,0] += abs_dp*PHI10
-            n = self.ij_to_n(ii,jj+1)
-            L[n,0] += abs_dp*PHI01
-            n = self.ij_to_n(ii+1,jj+1)
-            L[n,0] += abs_dp*PHI11
+            #n = self.ij_to_n(ii,jj)
+            #L[n,0] += abs_dp*PHI00
+            Lindex.append(self.ij_to_n(ii,jj))
+            L.append(abs_dp*PHI00)
+            #n = self.ij_to_n(ii+1,jj)
+            #L[n,0] += abs_dp*PHI10
+            Lindex.append(self.ij_to_n(ii+1,jj))
+            L.append(abs_dp*PHI10)
+            #n = self.ij_to_n(ii,jj+1)
+            #L[n,0] += abs_dp*PHI01
+            Lindex.append(self.ij_to_n(ii,jj+1))
+            L.append(abs_dp*PHI01)
+            #n = self.ij_to_n(ii+1,jj+1)
+            #L[n,0] += abs_dp*PHI11
+            Lindex.append(self.ij_to_n(ii+1,jj+1))
+            L.append(abs_dp*PHI11)
             
             # Move on to the next element
             # The stop point is now the start point
@@ -414,8 +442,7 @@ theta is the wire angle from positive x in radians
             # Detect the end of grid
             if ii<0 or ii>(self.N[0]-2) or jj<0 or jj>(self.N[1]-2):
                 break
-        
-        return sparse.csr_matrix(L)
+        return sparse.csr_matrix((L, (Lindex,np.zeros_like(Lindex))), shape=(self.size(),1), dtype=float)
 
 
     def add_data(self, R, d, theta, I):
@@ -436,3 +463,25 @@ where X is the solution vector
         L = self.lam(R,d,theta)
         self.B += L*I
         self.A += L*L.T
+
+
+    def solve(self):
+        """Execute the deconvolution operation
+    solve()
+    
+Stores the result in self.X
+"""
+        # First, trim away nodes that do not impact the data represented
+        # in A and B.  Start by listing the non-zero entries of
+        # B.  This will constitute an ordered list of all the node 
+        # indicies (sequential) that are represented in the data set.
+        # Nodes not listed can be eliminated from the inversion problem
+        # and this serves as a map from the reduced problem to the full
+        # problem.
+        I_nonzero = np.unique(self.B.nonzero()[0])
+        
+        Ard = self.A[I_nonzero, I_nonzero]
+        Brd = self.B[I_nonzero,0]
+        
+        self.X = np.zeros((self.N[0]*self.N[1],1), dtype=float)
+        self.X[I_nonzero] = linalg.spsolve(Ard, Brd)
