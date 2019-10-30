@@ -8,23 +8,107 @@ import scipy.sparse.linalg as linalg
 import os, sys
 
 
-def _lil_remove_row(A, row):
-    """Given a sparse LIL matrix, remove a row in-place
+def _csr_empty_row(A):
+    """While preserving all data in a matrix, shift all empty rows to the bottom
+    
+The matrix must be a scipy sparse CSR (compact sparse row) object.
+Alternately, if this algorithm is used on a CSC matrix, it acts like
+_CSR_EMPTY_COL(A).
+    
+    [[ 1 2 0 3 ]
+     [ 2 0 0 0 ]
+     [ 0 0 0 0 ]
+     [ 3 0 0 1 ]]
+     
+Is transformed to
+
+    [[ 1 2 0 3 ]
+     [ 2 0 0 0 ]
+     [ 3 0 0 1 ]
+     [ 0 0 0 0 ]]
 """
-    if row>=A.shape[0]:
-        raise Exception('row is out or range for this matrix: (%d x %d)'%A.shape)
-    A.nnz -= len(A.data[row])
-    np.delete(A.data, row)
-    np.delete(A.rows, row)
-    A.shape[0] -= 1
+    last_unique = 0
+    for index in range(1,len(A.indptr)):
+        if A.indptr[index] != A.indptr[last_unique]:
+            last_unique += 1
+            if last_unique < index:
+                A.indptr[last_unique] = A.indptr[index]
+    for index in range(last_unique+1,len(A.indptr)):
+        A.indptr[index] = A.indptr[last_unique]
+
+def _csr_empty_col(A):
+    """While preserving all data in a matrix, shift all empty columns to the right
     
+The algorithm identifes empty columns by looking for indices that are
+not represented in the INDEX member of A.  
+
+The matrix must be a scipy sparse CSR (compact sparse row) object.
+Alternately, if this algorithm is used on a CSC matrix, it acts like
+_CSR_EMPTY_ROW(A).
     
-def _lil_remove_col(A, col):
-    """Given a sparse LIL matrix, remove a row and column with the same index in-place
+    [[ 1 2 0 3 ]
+     [ 2 0 0 0 ]
+     [ 0 0 0 0 ]
+     [ 3 0 0 1 ]]
+     
+Is transformed to
+
+    [[ 1 2 3 0 ]
+     [ 2 0 0 0 ]
+     [ 0 0 0 0 ]
+     [ 3 0 1 0 ]]
 """
-    if col>=A.shape[1]:
-        raise Exception('col is out of range for this matrix: (%d x %d)'%A.shape)
+    # Loop through all columns.
+    col_to_move = 0
+    cols_to_test = A.shape[1]
+    while col_to_move < cols_to_test:
+        if col_to_move in A.indices:
+            col_to_move += 1
+        else:
+            cols_to_test -= 1
+            # Moving a column requires that every index in the indices list
+            # Greater than this column be reduced by one.
+            for ii in range(len(A.indices)):
+                if A.indices[ii] > col_to_move:
+                    A.indices[ii] -= 1
+
+def _csc_empty_row(A):
+    """While preserving all data in a matrix, shift all empty rows to the bottom
     
+The algorithm identifes empty columns by looking for indices that are
+not represented in the INDEX member of A.  
+
+The matrix must be a scipy sparse CSR (compact sparse row) object.
+Alternately, if this algorithm is used on a CSC matrix, it acts like
+_CSR_EMPTY_ROW(A).
+    
+    [[ 1 2 0 3 ]
+     [ 2 0 0 0 ]
+     [ 0 0 0 0 ]
+     [ 3 0 0 1 ]]
+     
+Is transformed to
+
+    [[ 1 2 3 0 ]
+     [ 2 0 0 0 ]
+     [ 0 0 0 0 ]
+     [ 3 0 1 0 ]]
+"""
+    # Loop through all columns.
+    col_to_move = 0
+    cols_to_test = A.shape[0]
+    while col_to_move < cols_to_test:
+        if col_to_move in A.indices:
+            col_to_move += 1
+        else:
+            cols_to_test -= 1
+            # Moving a column requires that every index in the indices list
+            # Greater than this column be reduced by one.
+            for ii in range(len(A.indices)):
+                if A.indices[ii] > col_to_move:
+                    A.indices[ii] -= 1
+                    
+_csc_empty_col = _csr_empty_row
 
 
 #=======================#
@@ -202,7 +286,46 @@ The following member methods interact with the grid elements
 
 The dimensions of the grid's domain are delta*(Nx-1), delta*(Ny-1).
 This is returned by the dims() funciton.
+
+:: Attriutes ::
+
+A grid object has the following public attributes that are intended to
+be read-only.  They are constructed through the methods discussed here.
+
+N   
+The grid shape.  This is a two-element tuple, (Nx, Ny), counting the 
+number of nodes along the x- and y-axes.
+    
+delta
+The grid spacing.  The is the distance between grid nodes in x and y
+in the length units used in the measurement data (usually mm).
+
+A, B, X, and index_map
+These solution matrices/vectors set up the deconvolution problem.
+    B = A * X
+X contains the node values in an n-indexed vector (see above).  A and B
+are constructed by the ADD_DATA() method.  Each call to the method 
+accumulates new values in A and B.  For efficiency, they are sparse 
+matrices, so caution should be used when attempting to manipulate them.
+
+When all the data have been accumulated into A and B, the SOLVE() method
+trims rows and columns of zeros from A and B to reduce the problem.  
+This happens when the raw data do not pass through some elements of the
+solution space, so the corresponding nodes are not represented in the 
+matrix problem.  To make the problem linearly independent, we strip 
+these nodes out of the problem and assert that they are zero.
+
+The index_map member is an array of indices that map the elements of the
+reduced (linearly independent) solution set back to the full solution
+set.
 """
+    N=(0,0)
+    delta=0.
+    A=None
+    B=None
+    index_map=None
+    X=None
+
     def __init__(self, Nx, Ny, delta):
         self.N = np.array((Nx, Ny), dtype=int)
         self.delta = float(delta)
@@ -211,6 +334,7 @@ This is returned by the dims() funciton.
         size = self.N[0] * self.N[1]
         self.A = sparse.csr_matrix((size, size), dtype=float)
         self.B = sparse.csc_matrix((size,1), dtype=float)
+        self.index_map = None
         self.X = None
     
     def ij_to_n(self, i,j):
@@ -478,10 +602,14 @@ Stores the result in self.X
         # Nodes not listed can be eliminated from the inversion problem
         # and this serves as a map from the reduced problem to the full
         # problem.
-        I_nonzero = np.unique(self.B.nonzero()[0])
+        self.index_map = np.unique(self.A.indices)
+        nn = len(self.index_map)
         
-        Ard = self.A[I_nonzero, I_nonzero]
-        Brd = self.B[I_nonzero,0]
+        _csr_empty_col(self.A)
+        _csr_empty_row(self.A)
+        self.A.resize((nn,nn))
+        _csc_empty_row(self.B)
+        self.B.resize((nn,1))
         
-        self.X = np.zeros((self.N[0]*self.N[1],1), dtype=float)
-        self.X[I_nonzero] = linalg.spsolve(Ard, Brd)
+        self.X = np.zeros((self.N[0]*self.N[1]), dtype=float)
+        self.X[self.index_map] = linalg.spsolve(self.A, self.B)
