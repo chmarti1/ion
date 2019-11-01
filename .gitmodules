@@ -1,6 +1,3 @@
-[submodule "experiment5/code/lconfig"]
-	path = experiment5/code/lconfig
-	url = https://github.com/chmarti1/lconfig
 [submodule "experiment5/source/lconfig"]
 	path = experiment5/source/lconfig
 	url = https://github.com/chmarti1/lconfig

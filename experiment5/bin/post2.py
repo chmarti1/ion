@@ -20,7 +20,7 @@ from scipy import sparse
 import scipy.sparse.linalg as linalg
 import matplotlib.pyplot as plt
 import wiretools as wt
-import multiprocessing as mp
+import pool
 
 # These are options that you might want to change before running this script...
 data_dir = '../data'    # Where are the data?
@@ -121,7 +121,7 @@ else:
 
 
 
-#pool = mp.Pool(mp.cpu_count())
+pp = pool.Pool()
 
 print('Pre-processing p1d files...')
 
@@ -129,8 +129,11 @@ for thisfile in contents:
     thisid = thisfile.split('.')[0]
     fullfile = os.path.join(post1_dir, thisfile)
     if os.path.isfile(fullfile) and thisfile.endswith('.p1d'):
-        #pool.apply_async(_p2proc, args=(fullfile,grid))
-        _p2proc(fullfile, grid)
-    
-#pool.close()
-#pool.join()
+        pp.add(_p2proc, (fullfile,grid))
+        #_p2proc(fullfile, grid)
+        
+pp.start()
+pp.stop()
+
+print('Saving matrices...')
+grid.save(target_dir)

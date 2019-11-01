@@ -6,6 +6,7 @@ import numpy as np
 from scipy import sparse
 import scipy.sparse.linalg as linalg
 import os, sys
+import time
 
 
 def _csr_empty_row(A):
@@ -325,6 +326,8 @@ set.
     B=None
     index_map=None
     X=None
+    _yoffset = 0
+    _lock = False
 
     def __init__(self, Nx, Ny, delta):
         self.N = np.array((Nx, Ny), dtype=int)
@@ -332,11 +335,62 @@ set.
         self._yoffset = -self.delta * (self.N[1]-1) / 2.
         # Initialize the solution matrices
         size = self.N[0] * self.N[1]
-        self.A = sparse.csr_matrix((size, size), dtype=float)
-        self.B = sparse.csc_matrix((size,1), dtype=float)
+        self.A = None 
+        self.B = None
         self.index_map = None
         self.X = None
-    
+        self._lock = False
+        
+    def save(self, destination=None):
+        """Saves the grid settings and (if defined) the solution matrix and node values
+    G.save()
+        OR
+    G.save(destination)
+
+The destination should be a string path to a directory where files defining the
+grid will be created.  If no destination is given, the current directory is used
+The following files will be created
+
+grid.conf
+Plain text file including the grid dimensions (N) and spacing (delta).
+
+A.npy
+If the A solution matrix has been set up, A.npy contains it.
+
+B.npy
+If the B solution matrix has been set up, B.npy contains it.
+
+X.npy
+If the node values have been solved for, their values are stored in X.npy
+
+index_map.npy
+The index map is an ordered array of the nodes represented in the matrices A
+and B.  
+"""
+        if destination is None:
+            destination = '.'
+        destination = os.path.abspath(destination)
+        if not os.path.isdir(destination):
+            raise Exception('Save: The destination directory does not exist: %s'%destination)
+        # Write the grid configuration
+        target = os.path.join(destination, 'grid.conf')
+        with open(target, 'w') as ff:
+            ff.write('Nx %d\nNy %d\ndelta %e'%(self.N[0], self.N[1], self.delta))
+        # Write the matrix values
+        if self.A:
+            target = os.path.join(destination, 'A.npy')
+            np.save(self.A,target)
+        if self.B:
+            target = os.path.join(destination, 'B.npy')
+            np.save(self.B,target)
+        if self.X:
+            target = os.path.join(destination, 'X.npy')
+            np.save(self.X,target)
+        if self.index_map:
+            target = os.path.join(destination, 'index_map.npy')
+            np.save(self.index_map, target)
+        
+        
     def ij_to_n(self, i,j):
         """Calculates the node index from the xy indices
     n = G.ij_to_n(i,j)
@@ -571,22 +625,45 @@ theta is the wire angle from positive x in radians
 
     def add_data(self, R, d, theta, I):
         """Add data into the solution matrices
-    add_data(R, d, theta, I)
-    
-R is the radius from center of rotation to the wire tip in mm
-d is the distance from the grid origin to the center of rotation in mm
-theta is the wire angle from the x-axis in radians
-I is the wire current divided by the wire circumference (i_uA/pi/D_mm)
+    G.add_data(R, d, theta, I)
+
+R, d, theta, and I represent a single data point in the 
+
+R   is the wire tip radius from the center of rotation in length units (usually
+    mm).  This should be half the disc diameter plus the wire protrusion length.
+d   is the disc center of rotation distance from the edge of the data set in 
+    length units (usually mm)
+theta is the wire angle relative to the x-axis in radians
+I   is the wire current in uA divided by the wire circumference (i_uA/pi/D_mm)
 
 ADD_DATA() calls LAM() to construct a lambda vector for the point.  Then
 contributions to the A matrix and B vector are computed and added so
 that
-    A * X = B
-where X is the solution vector
+    G.A * G.X = G.B
+where X is the solution vector.  The intent is that ADD_DATA be called 
+repeatedly to fold in many individual measurements before the SOLVE() member
+is finally called to calculate G.X.
+
+For large grids and for large data sets, the matrix construction process 
+performed by ADD_DATA can be quite time consuming, so it is designed to be used
+in threads.  However, since ADD_DATA modifies the A and B members, race 
+conditions become possible.  To make ADD_DATA thread-safe, a very simple 
+internal locking mechanism is used, so that parallel executions of ADD_DATA will
+wait their turns while A and B are being accessed.
+
 """
+        if self.A is None:
+            A = sparse.csr_matrix((size, size), dtype=float)
+        if self.B is None:
+            B = sparse.csc_matrix((size,1), dtype = float)
+        # Calculate lambda
         L = self.lam(R,d,theta)
+        # While updating the solution matrices, lock out the grid to prevent
+        # a race conditions in multi-threading applications.
+        self.acquire_lock()
         self.B += L*I
         self.A += L*L.T
+        self.release_lock()
 
 
     def solve(self):
@@ -613,3 +690,72 @@ Stores the result in self.X
         
         self.X = np.zeros((self.N[0]*self.N[1]), dtype=float)
         self.X[self.index_map] = linalg.spsolve(self.A, self.B)
+
+    def acquire_lock(self):
+        """Block execution of the process until the lock is released
+    G.acquire_lock()
+    ... do something dangerous to G ...
+    G.release_lock()
+"""
+        # Now, we wait until the lock is released.  Check about once every 
+        # millisecond.
+        while self._lock:
+            time.sleep(.001)
+        # Then, we take it back
+        self._lock = True
+
+    def release_lock(self):
+        """Release an execution lock after having run ACQUIRE_LOCK
+    G.acquire_lock()
+    ... do something dangerous to G ...
+    G.release_lock()
+"""
+        self._lock = False
+
+
+
+def grid_load(source=None):
+    """Loads the files generated by the Grid.save() method
+G = grid_load()
+    OR
+G = grid_load(source)
+
+If source is omitted, then the current directory will be used.  Otherwise,
+source must be a directory containing the files described by the SAVE() 
+method.
+"""
+    if source is None:
+        source = '.'
+    source = os.path.abspath(source)
+    if not os.path.isdir(source):
+        raise Exception('Load: The source directory does not exist: %s\n'%source)
+    
+    # Load the grid configuration parameters
+    target = os.path.join(source, 'grid.conf'):
+    gridconf = {'Nx':-1, 'Ny':-1, 'delta':-1.}
+    with open(target,'r') as ff:
+        for thisline in ff:
+            if thisline and thisline[0]!='#':
+                param,value = thisline.split()
+                if param in gridconf:
+                    gridconf[param] = gridconf[param].__type__(value)
+                else:
+                    raise Exception('Load: grid.conf unrecognized parameter: %s'%param)
+    
+    G = Grid(gridconf['Nx'], gridconf['Ny'], gridconf['delta'])
+    
+    # Load the matrices
+    target = os.path.join(source, 'A.npy')
+    if os.path.isfile(target):
+        G.A = np.load(target, allow_pickle=True)
+    target = os.path.join(source, 'B.npy')
+    if os.path.isfile(target):
+        G.B = np.load(target, allow_pickle=True)
+    target = os.path.join(source, 'X.npy')
+    if os.path.isfile(target):
+        G.X = np.load(target, allow_pickle=True)
+    target = os.path.join(source, 'index_map.npy')
+    if os.path.isfile(target):
+        G.index_map = np.load(target, allow_pickle=True)
+
+    return G
