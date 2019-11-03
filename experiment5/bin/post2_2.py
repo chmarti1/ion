@@ -131,36 +131,18 @@ else:
 
 print('Pre-processing p1d files...')
 
+grid.init_AB()
+
 # Build a schedule of files to process
-schedule = []
 for thisfile in contents:
     thisid = thisfile.split('.')[0]
     fullfile = os.path.join(post1_dir, thisfile)
     if os.path.isfile(fullfile) and thisfile.endswith('.p1d'):
-        schedule.append(fullfile)
-        #_p2proc(fullfile, grid)
-
-sys.stdout.write('|' + ' '*(len(schedule)-2) + '|\n')
+        #schedule.append(fullfile)
+        _p2proc(fullfile, grid)
 
 # Initialize worker grids
-grid.init_AB()
-grids = []
-workers = []
-for wid in range(_nproc()):
-    grids.append(grid.copy())
-    workers.append(thrd.Thread(target=_worker, args=(schedule, grids[-1])))
-    workers[-1].start()
 
-# Wait for the threads to complete
-for this in workers:
-    this.join()
-    
-# Combine the results
-while grids:
-    this = grids.pop(0)
-    grid.A += this.A
-    grid.B += this.B
-    
 
-print('\nSaving matrices...')
+print('Saving matrices...')
 grid.save(target_dir)

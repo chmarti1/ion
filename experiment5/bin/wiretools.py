@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy import sparse
+#import scipy.linalg as linalg
 import scipy.sparse.linalg as linalg
 import os, sys
 import time
@@ -63,6 +64,7 @@ Is transformed to
     col_to_move = 0
     cols_to_test = A.shape[1]
     while col_to_move < cols_to_test:
+        print(col_to_move)
         if col_to_move in A.indices:
             col_to_move += 1
         else:
@@ -341,6 +343,19 @@ set.
         self.X = None
         self._lock = False
         
+    def copy(self):
+        """G2 = G1.copy()"""
+        G = Grid(self.N[0], self.N[1], self.delta)
+        if self.A is not None:
+            G.A = self.A.copy()
+        if self.B is not None:
+            G.B = self.B.copy()
+        if self.X is not None:
+            G.X = self.X.copy()
+        if self.index_map is not None:
+            G.index_map = self.index_map.copy()
+        return G
+        
     def save(self, destination=None):
         """Saves the grid settings and (if defined) the solution matrix and node values
     G.save()
@@ -377,18 +392,18 @@ and B.
         with open(target, 'w') as ff:
             ff.write('Nx %d\nNy %d\ndelta %e'%(self.N[0], self.N[1], self.delta))
         # Write the matrix values
-        if self.A:
-            target = os.path.join(destination, 'A.npy')
-            np.save(self.A,target)
-        if self.B:
-            target = os.path.join(destination, 'B.npy')
-            np.save(self.B,target)
-        if self.X:
+        if self.A is not None:
+            target = os.path.join(destination, 'A.npz')
+            sparse.save_npz(target,self.A)
+        if self.B is not None:
+            target = os.path.join(destination, 'B.npz')
+            sparse.save_npz(target,self.B)
+        if self.X is not None:
             target = os.path.join(destination, 'X.npy')
-            np.save(self.X,target)
-        if self.index_map:
+            np.save(target,self.X)
+        if self.index_map is not None:
             target = os.path.join(destination, 'index_map.npy')
-            np.save(self.index_map, target)
+            np.save(target,self.index_map)
         
         
     def ij_to_n(self, i,j):
@@ -623,6 +638,16 @@ theta is the wire angle from positive x in radians
         return sparse.csr_matrix((L, (Lindex,np.zeros_like(Lindex))), shape=(self.size(),1), dtype=float)
 
 
+    def init_AB(self):
+        """Initializes the A and B matrices
+    G.init_AB()
+    
+This must be called before using ADD_DATA() to construct the matrices.
+"""
+        size = self.size()
+        self.A = sparse.csr_matrix((size, size), dtype=float)
+        self.B = sparse.csc_matrix((size,1), dtype = float)
+
     def add_data(self, R, d, theta, I):
         """Add data into the solution matrices
     G.add_data(R, d, theta, I)
@@ -652,18 +677,10 @@ internal locking mechanism is used, so that parallel executions of ADD_DATA will
 wait their turns while A and B are being accessed.
 
 """
-        if self.A is None:
-            A = sparse.csr_matrix((size, size), dtype=float)
-        if self.B is None:
-            B = sparse.csc_matrix((size,1), dtype = float)
         # Calculate lambda
         L = self.lam(R,d,theta)
-        # While updating the solution matrices, lock out the grid to prevent
-        # a race conditions in multi-threading applications.
-        self.acquire_lock()
         self.B += L*I
         self.A += L*L.T
-        self.release_lock()
 
 
     def solve(self):
@@ -681,15 +698,18 @@ Stores the result in self.X
         # problem.
         self.index_map = np.unique(self.A.indices)
         nn = len(self.index_map)
+        print("Reducing %dx%d problem to %dx%d."%(self.size(),self.size(),nn,nn))
+        A = self.A[self.index_map, :]
+        A = A[:, self.index_map]
+        print("A done.")
+        B = self.B[self.index_map, 0]
+        print("B done.")
         
-        _csr_empty_col(self.A)
-        _csr_empty_row(self.A)
-        self.A.resize((nn,nn))
-        _csc_empty_row(self.B)
-        self.B.resize((nn,1))
+        self.X = np.zeros((self.size(),), dtype=float)
         
-        self.X = np.zeros((self.N[0]*self.N[1]), dtype=float)
-        self.X[self.index_map] = linalg.spsolve(self.A, self.B)
+        print("Solving...")
+        self.X[self.index_map] = linalg.spsolve(A, B)
+        print("Done")
 
     def acquire_lock(self):
         """Block execution of the process until the lock is released
@@ -731,26 +751,26 @@ method.
         raise Exception('Load: The source directory does not exist: %s\n'%source)
     
     # Load the grid configuration parameters
-    target = os.path.join(source, 'grid.conf'):
+    target = os.path.join(source, 'grid.conf')
     gridconf = {'Nx':-1, 'Ny':-1, 'delta':-1.}
     with open(target,'r') as ff:
         for thisline in ff:
             if thisline and thisline[0]!='#':
                 param,value = thisline.split()
                 if param in gridconf:
-                    gridconf[param] = gridconf[param].__type__(value)
+                    gridconf[param] = gridconf[param].__class__(value)
                 else:
                     raise Exception('Load: grid.conf unrecognized parameter: %s'%param)
     
     G = Grid(gridconf['Nx'], gridconf['Ny'], gridconf['delta'])
     
     # Load the matrices
-    target = os.path.join(source, 'A.npy')
+    target = os.path.join(source, 'A.npz')
     if os.path.isfile(target):
-        G.A = np.load(target, allow_pickle=True)
-    target = os.path.join(source, 'B.npy')
+        G.A = sparse.load_npz(target)
+    target = os.path.join(source, 'B.npz')
     if os.path.isfile(target):
-        G.B = np.load(target, allow_pickle=True)
+        G.B = sparse.load_npz(target)
     target = os.path.join(source, 'X.npy')
     if os.path.isfile(target):
         G.X = np.load(target, allow_pickle=True)
