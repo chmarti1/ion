@@ -35,7 +35,7 @@ while True:
         break
 
 # Check the inputs for sanity
-if rising_edge_angle > 180 or rising_edge_angle < 180:
+if rising_edge_angle > 180 or rising_edge_angle < -180:
     print('The calculated wire angle at the encoder rising edge is %f degrees.'%rising_edge_angle)
     print('It looks like you are using the wrong encoder edge.  Try again')
     exit(-1)
@@ -64,6 +64,7 @@ os.mkdir(datadir)
 # skipped steps.
 x = 0.
 x_incr = 2*x_step
+xindex = 0
 while x>=0.:
     
     thisfile = path.join(datadir, '%03d.dat'%xindex)
@@ -83,6 +84,7 @@ while x>=0.:
     
     # Increment x
     # If we're beyond the stop point, turn it around
+    xindex += 1
     x += x_incr
     if x > x_stop:
         x -= x_step
