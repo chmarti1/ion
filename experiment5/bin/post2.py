@@ -20,7 +20,7 @@ from scipy import sparse
 import scipy.sparse.linalg as linalg
 import matplotlib.pyplot as plt
 import wiretools as wt
-import threading as thrd
+import multiprocessing as mp
 import time
 
 # These are options that you might want to change before running this script...
@@ -82,13 +82,17 @@ def _p2proc(p1dfile, grid):
             I = i_uA / np.pi / dw
             # Fold in the data
             grid.add_data(r,x,theta,I)
-            
+
 
 def _worker(file_list, grid):
     while file_list:
         p1dfile = file_list.pop(0)
         _p2proc(p1dfile, grid)
+    return grid
 
+
+# Start timing
+tstart = time.time()
 
 # Identify the data set directory from the command line argument
 #source_spec = '4713'
@@ -131,36 +135,41 @@ else:
 
 print('Pre-processing p1d files...')
 
+# How many workers will be processing these files in parallel?
+nproc = mp.cpu_count()
+
 # Build a schedule of files to process
-schedule = []
+schedules = [[] for index in range(nproc)]
+index = 0
+file_count = 0
 for thisfile in contents:
-    thisid = thisfile.split('.')[0]
-    fullfile = os.path.join(post1_dir, thisfile)
-    if os.path.isfile(fullfile) and thisfile.endswith('.p1d'):
-        schedule.append(fullfile)
-        #_p2proc(fullfile, grid)
+    if thisfile.endswith('.p1d'):
+        fullfile = os.path.join(post1_dir, thisfile)
+        if os.path.isfile(fullfile):
+            schedules[index].append(fullfile)
+            file_count += 1
+            index = (index+1)%nproc
 
-sys.stdout.write('|' + ' '*(len(schedule)-2) + '|\n')
+# Print a cheezy indicator bar
+sys.stdout.write('|' + ' '*(file_count-2) + '|\n')
 
-# Initialize worker grids
 grid.init_AB()
-grids = []
-workers = []
-for wid in range(_nproc()):
-    grids.append(grid.copy())
-    workers.append(thrd.Thread(target=_worker, args=(schedule, grids[-1])))
-    workers[-1].start()
 
-# Wait for the threads to complete
-for this in workers:
-    this.join()
-    
-# Combine the results
-while grids:
-    this = grids.pop(0)
-    grid.A += this.A
-    grid.B += this.B
-    
+# Initialize a process pool
+pool = mp.Pool(processes=nproc)
+results = [pool.apply_async(_worker, args=(sched, grid)) for sched in schedules]
+pool.close()
+pool.join()
 
-print('\nSaving matrices...')
+print('\nAssembling the results...')
+# Assemble the results
+for res in results:
+    thisgrid = res.get()
+    grid.A += thisgrid.A
+    grid.B += thisgrid.B
+
+print('Saving matrices...')
 grid.save(target_dir)
+
+tstop = time.time()
+print('The process took %f seconds'%(tstop-tstart))
