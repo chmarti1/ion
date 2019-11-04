@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 x_start = 0.0
-x_stop = 25.0
+x_stop = 20.0
 x_step = .125
 y = 0.
 disc_offset_angle = np.pi + np.arcsin(1.5/4.)
@@ -15,7 +15,7 @@ wire_length = 25.4
 
 start = time.localtime()
 
-datadir = path.abspath(time.strftime("%Y%m%d%H%M%S", start))
+datadir = path.abspath(time.strftime("../data/%Y%m%d%H%M%S", start))
 configfile = 'wscan.conf'
 
 while True:
@@ -28,6 +28,10 @@ while True:
     wire_length = input('(mm):')
     print('Enter the disc direction of rotation.  The usual direciton is counter-clock-wise.')
     rotation = input('(0=ccw, 1=cw):')
+    print('Enter the power supply voltage.')
+    wire_voltage = input('(V):')
+    print('Enter the torch standoff from the work')
+    standoff = input('(mm)')
     print('Who is entering these data?')
     initials = raw_input('(initials):')
     print('')
@@ -75,8 +79,8 @@ while x>=0.:
         exit(-1)
     time.sleep(1.)
     cmd = 'lcburst -c ' + configfile + ' -d ' + thisfile + \
-            ' -f x=%f -f y=%f -f theta=%f -f wire_length=%f -s who=\"%s\"'%(x, y, rising_edge_angle, wire_length, initials) + \
-            ' -s rot=\"%s\"'%(['ccw', 'cw'][rotation])
+            ' -f x=%f -f y=%f -f theta=%f -f r=%f -s who=\"%s\"'%(x, y, rising_edge_angle, wire_length+4*25.4, initials) + \
+            ' -s rot=\"%s\" -f vwire=%f -f standoff=%f'%(['ccw', 'cw'][rotation], wire_voltage, standoff)
     print(cmd)
     if os.system(cmd):
         print('FAILED')
