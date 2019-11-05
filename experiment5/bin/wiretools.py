@@ -329,7 +329,6 @@ set.
     index_map=None
     X=None
     _yoffset = 0
-    _lock = False
 
     def __init__(self, Nx, Ny, delta):
         self.N = np.array((Nx, Ny), dtype=int)
@@ -341,7 +340,6 @@ set.
         self.B = None
         self.index_map = None
         self.X = None
-        self._lock = False
         
     def copy(self):
         """G2 = G1.copy()"""
@@ -711,27 +709,16 @@ Stores the result in self.X
         self.X[self.index_map] = linalg.spsolve(A, B)
         print("Done")
 
-    def acquire_lock(self):
-        """Block execution of the process until the lock is released
-    G.acquire_lock()
-    ... do something dangerous to G ...
-    G.release_lock()
+    def pseudocolor(self, fig=None, savefig=None):
+        """Generate a pseudo-color plot of the solution
+    pseudocolor(fig=None, savefig=None)
+    
+If an integer figure number is given, then the corresponding figure will
+be cleared and used for constructing the plot.  If the savefig keyword
+is specified, it is treated as a file name to which the plot should be
+saved.
 """
-        # Now, we wait until the lock is released.  Check about once every 
-        # millisecond.
-        while self._lock:
-            time.sleep(.001)
-        # Then, we take it back
-        self._lock = True
-
-    def release_lock(self):
-        """Release an execution lock after having run ACQUIRE_LOCK
-    G.acquire_lock()
-    ... do something dangerous to G ...
-    G.release_lock()
-"""
-        self._lock = False
-
+        
 
 
 def grid_load(source=None):

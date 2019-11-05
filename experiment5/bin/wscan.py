@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os, sys
 from os import path
@@ -21,21 +21,25 @@ configfile = 'wscan.conf'
 while True:
     print('Enter the disc angle observed under the front edge of the platform\n' +
         'at the rising edge of the photointerrupter')
-    rising_edge_angle = -(np.pi/180.) * input('(deg):') + disc_offset_angle
+    rising_edge_angle = -(np.pi/180.) * float(input('(deg):')) + disc_offset_angle
     print('Using offset angle %f deg'%(disc_offset_angle * 180. / np.pi))
     print('Rising edge angle is %f deg from center'%(rising_edge_angle * 180. / np.pi))
     print('Enter the wire length extending radially beyond the disc edge')
-    wire_length = input('(mm):')
+    wire_length = float(input('(mm):'))
     print('Enter the disc direction of rotation.  The usual direciton is counter-clock-wise.')
-    rotation = input('(0=ccw, 1=cw):')
+    rotation = int(input('(0=ccw, 1=cw):'))
     print('Enter the power supply voltage.')
-    wire_voltage = input('(V):')
+    wire_voltage = float(input('(V):'))
     print('Enter the torch standoff from the work')
-    standoff = input('(mm)')
+    standoff = float(input('(mm):'))
+    print('Enter the total flow rate in scfh.')
+    total_scfh = float(input('(scfh):'))
+    print('Enter the F/O ratio.')
+    ratio_fto = float(input('(dless):'))
     print('Who is entering these data?')
-    initials = raw_input('(initials):')
+    initials = input('(initials):')
     print('')
-    if raw_input('Is this correct? (y/n):') == 'y':
+    if input('Is this correct? (y/n):') == 'y':
         break
 
 # Check the inputs for sanity
@@ -49,7 +53,7 @@ if rotation<0 or rotation>1:
     exit(-1)
 elif rotation == 1:
     print('Disc rotation is usually counter-clock-wise (0).  Are you sure it is clock-wise in this test?')
-    if raw_input('(y/n):') == 'y':
+    if input('(y/n):') == 'y':
         print('OK.  Sorry; just checking.')
     else:
         print('Stopping.')

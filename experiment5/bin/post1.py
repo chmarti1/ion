@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 post1.py DATADIR
     First post-processing step.  Read in raw current-time data and
@@ -22,13 +22,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lconfig as lc
 import multiprocessing as mp
+import time
 
 # These are options that you might want to change before running this script...
 use_long = False        # Use the long or short pulse when finding the angle offset?
 data_dir = '../data'    # Where are the data?
-theta_start = -0.0       # Exclude data not between theta_start and theta_stop
+theta_start = -0.3       # Exclude data not between theta_start and theta_stop
 theta_step = .001        # Organize the data into bins theta_step wide
-theta_stop = 0.12
+theta_stop = 0.3
 
 def _p1proc(fullfile):
     thisfile = os.path.split(fullfile)[1]
@@ -135,7 +136,7 @@ contents = os.listdir(source_dir)
 # Create the target directory if it doesn't exist
 if not os.path.isdir(target_dir):
     os.mkdir(target_dir)
-elif raw_input('Post 1 results already exist.  Overwrite? (y/n):') == 'y':
+elif input('Post 1 results already exist.  Overwrite? (y/n):') == 'y':
     for thisfile in os.listdir(target_dir):
         print('Removing ' + thisfile)
         os.remove(os.path.join(target_dir, thisfile))
@@ -143,7 +144,7 @@ else:
     print("Stopping.")
     exit(0)
 
-
+tstart = time.time()
 
 pool = mp.Pool(mp.cpu_count())
 
@@ -155,3 +156,7 @@ for thisfile in contents:
     
 pool.close()
 pool.join()
+
+tstop = time.time()
+print('Done.')
+print('The process took %f seconds.'%(tstop-tstart))

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 post2.py DATADIR
     Second post-processing step.  Read in post1 data files (p1d) wire
@@ -31,13 +31,6 @@ delta = 25./Ny  # grid size in mm
 
 # Initialize the grid
 grid = wt.Grid(Nx,Ny,delta)
-
-# Detect number of processors
-def _nproc():
-    try:
-        return os.sysconf('SC_NPROCESSORS_ONLN')
-    except:
-        raise Exception('This does not appear to be a POSIX system')
 
 # Define a data processing algorithm for parallelization
 # This opens the listed p1dfile and returns its contribution to the
@@ -91,9 +84,6 @@ def _worker(file_list, grid):
     return grid
 
 
-# Start timing
-tstart = time.time()
-
 # Identify the data set directory from the command line argument
 #source_spec = '4713'
 source_spec = sys.argv[1]
@@ -124,7 +114,7 @@ contents = os.listdir(post1_dir)
 # Create the target directory if it doesn't exist
 if not os.path.isdir(target_dir):
     os.mkdir(target_dir)
-elif raw_input('Post 2 results already exist.  Overwrite? (y/n):') == 'y':
+elif input('Post 2 results already exist.  Overwrite? (y/n):') == 'y':
     for thisfile in os.listdir(target_dir):
         print('Removing ' + thisfile)
         os.remove(os.path.join(target_dir, thisfile))
@@ -134,6 +124,9 @@ else:
 
 
 print('Pre-processing p1d files...')
+
+# Start timing
+tstart = time.time()
 
 # How many workers will be processing these files in parallel?
 nproc = mp.cpu_count()
