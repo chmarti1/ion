@@ -733,7 +733,7 @@ visualizing the solution
 """
         if self.X is None:
             raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
-        return self.X.reshape(self.N)
+        return self.X.reshape(self.N[1],self.N[0])
 
     def pseudocolor(self, savefig=None):
         """Generate a pseudo-color plot of the solution
@@ -747,7 +747,7 @@ saved.
         ax = lplot.init_fig('y (mm)', 'x (mm)', figure_size=(6,6))
         x,y = self.nodes()
         V = self.get_values()
-        ax.pcolormesh(y,x,-V, vmax=8., vmin=0.)
+        ax.imshow(-V, aspect='equal', interpolation='bilinear', vmax=7., vmin=0.)
         if savefig:
             ax.get_figure().savefig(savefig)
         return ax
