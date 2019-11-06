@@ -8,6 +8,7 @@ from scipy import sparse
 import scipy.sparse.linalg as linalg
 import os, sys
 import time
+import lplot
 
 
 def _csr_empty_row(A):
@@ -338,7 +339,6 @@ set.
         size = self.N[0] * self.N[1]
         self.A = None 
         self.B = None
-        self.index_map = None
         self.X = None
         
     def copy(self):
@@ -350,8 +350,6 @@ set.
             G.B = self.B.copy()
         if self.X is not None:
             G.X = self.X.copy()
-        if self.index_map is not None:
-            G.index_map = self.index_map.copy()
         return G
         
     def save(self, destination=None):
@@ -399,9 +397,6 @@ and B.
         if self.X is not None:
             target = os.path.join(destination, 'X.npy')
             np.save(target,self.X)
-        if self.index_map is not None:
-            target = os.path.join(destination, 'index_map.npy')
-            np.save(target,self.index_map)
         
         
     def ij_to_n(self, i,j):
@@ -467,6 +462,17 @@ application is careless.
         return np.array(
                 (i * self.delta,
                 j * self.delta + self._yoffset), dtype=float)
+                
+    def nodes(self):
+        """Generate arrays of the x and y node coordinates
+    x,y = G.nodes()
+    
+x and y are 1-D numpy arrays that might be used for contour or pseudo-
+color plots.
+"""
+        xlength = (self.N[0]-1)*self.delta
+        ylength = (self.N[1]-1)*self.delta
+        return np.linspace(0., xlength, self.N[0]), np.linspace(self._yoffset, self._yoffset + ylength, self.N[1])
 
     def element(self, *key):
         """Calculate an x,y coordinate, p, of a node.
@@ -687,6 +693,8 @@ wait their turns while A and B are being accessed.
     
 Stores the result in self.X
 """
+        if self.A is None or self.B is None:
+            raise Exception('The A and B member matrices have not been constructed using ADD_DATA!')
         # First, trim away nodes that do not impact the data represented
         # in A and B.  Start by listing the non-zero entries of
         # B.  This will constitute an ordered list of all the node 
@@ -694,22 +702,38 @@ Stores the result in self.X
         # Nodes not listed can be eliminated from the inversion problem
         # and this serves as a map from the reduced problem to the full
         # problem.
-        self.index_map = np.unique(self.A.indices)
-        nn = len(self.index_map)
-        print("Reducing %dx%d problem to %dx%d."%(self.size(),self.size(),nn,nn))
-        A = self.A[self.index_map, :]
-        A = A[:, self.index_map]
-        print("A done.")
-        B = self.B[self.index_map, 0]
-        print("B done.")
+        index_map = np.unique(self.A.indices)
+        nn = len(index_map)
+        print("-> Reducing %dx%d problem to %dx%d."%(self.size(),self.size(),nn,nn))
+        A = self.A[index_map, :]
+        A = A[:, index_map]
+        print("-> A done.")
+        B = self.B[index_map, 0]
+        print("-> B done.")
         
         self.X = np.zeros((self.size(),), dtype=float)
         
         print("Solving...")
-        self.X[self.index_map] = linalg.spsolve(A, B)
+        self.X[index_map] = linalg.spsolve(A, B)
         print("Done")
 
-    def pseudocolor(self, fig=None, savefig=None):
+    def get_values(self):
+        """Arrange the solution vector into a 2D array for plotting
+    X = G.get_values()
+
+This can be conveniently used with the NODES() member function for 
+visualizing the solution
+    x,y = G.nodes()
+    X = G.get_values()
+    plt.contour(x,y,X)
+        OR
+    plt.pcolormesh(x,y,X)
+"""
+        if self.X is None:
+            raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
+        return self.X.reshape(self.N)
+
+    def pseudocolor(self, savefig=None):
         """Generate a pseudo-color plot of the solution
     pseudocolor(fig=None, savefig=None)
     
@@ -718,7 +742,13 @@ be cleared and used for constructing the plot.  If the savefig keyword
 is specified, it is treated as a file name to which the plot should be
 saved.
 """
-        
+        ax = lplot.init_fig('y (mm)', 'x (mm)', figure_size=(6,6))
+        x,y = self.nodes()
+        V = self.get_values()
+        ax.pcolormesh(y,x,-V, vmax=8., vmin=0.)
+        if savefig:
+            ax.get_figure().savefig(savefig)
+        return ax
 
 
 def grid_load(source=None):
@@ -761,8 +791,5 @@ method.
     target = os.path.join(source, 'X.npy')
     if os.path.isfile(target):
         G.X = np.load(target, allow_pickle=True)
-    target = os.path.join(source, 'index_map.npy')
-    if os.path.isfile(target):
-        G.index_map = np.load(target, allow_pickle=True)
 
     return G

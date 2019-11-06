@@ -52,7 +52,8 @@ tstart = time.time()
 
 print("Loading Post 2 matrix results...")
 grid = wt.grid_load(post2_dir)
-print("Solving...")
-grid.solve()
 print("Generating plots...")
+target = os.path.join(target_dir, 'pcolor.png')
+ax = grid.pseudocolor(savefig=target)
+
 

@@ -25,9 +25,9 @@ import time
 
 # These are options that you might want to change before running this script...
 data_dir = '../data'    # Where are the data?
-Nx = 51     # How many x-points
-Ny = 51     # How many y-points
-delta = 25./Ny  # grid size in mm
+Nx = 80     # How many x-points
+Ny = 101     # How many y-points
+delta = 0.25
 
 # Initialize the grid
 grid = wt.Grid(Nx,Ny,delta)
@@ -161,8 +161,11 @@ for res in results:
     grid.A += thisgrid.A
     grid.B += thisgrid.B
 
-print('Saving matrices...')
+print('Solving...')
+grid.solve()
+
+print('Saving...')
 grid.save(target_dir)
 
 tstop = time.time()
-print('The process took %f seconds'%(tstop-tstart))
+print('The process took %f seconds.'%(tstop-tstart))
