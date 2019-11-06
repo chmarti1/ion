@@ -8,6 +8,8 @@ from scipy import sparse
 import scipy.sparse.linalg as linalg
 import os, sys
 import time
+import matplotlib as mpl
+mpl.use('Agg')
 import lplot
 
 
