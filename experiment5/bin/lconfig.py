@@ -45,7 +45,8 @@ word = read_pair(ff)
             if charin == '#':
                 # Rewind by two characters so the read param algorithm
                 # will stick on the ## character combination
-                ff.seek(-2,1)
+                #ff.seek(-2,1)
+                ff.seek(ff.tell()-2,0)
                 return param
             # Kill off the remainder of the line
             while charin and charin!='\n':
@@ -655,7 +656,7 @@ The same rules apply for the analog output, com, and ef channels.
             default = DEF_COMCH
             
         # If the recall is multiple    
-        if hasattr(param, '__iter__'):
+        if hasattr(param, '__iter__') and not isinstance(param,str):
             out = []
             for pp in param:
                 if pp in source:

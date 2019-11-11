@@ -44,8 +44,8 @@ while True:
         break
 
 # Check the inputs for sanity
-if rising_edge_angle > 180 or rising_edge_angle < -180:
-    print('The calculated wire angle at the encoder rising edge is %f degrees.'%rising_edge_angle)
+if rising_edge_angle > np.pi or rising_edge_angle < -np.pi:
+    print('The calculated wire angle at the encoder rising edge is %f degrees.'%rising_edge_angle * 180 / np.pi)
     print('It looks like you are using the wrong encoder edge.  Try again')
     exit(-1)
     

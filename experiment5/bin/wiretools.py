@@ -9,7 +9,8 @@ import scipy.sparse.linalg as linalg
 import os, sys
 import time
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
+import matplotlib.pyplot as plt
 import lplot
 
 
@@ -735,7 +736,7 @@ visualizing the solution
             raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
         return self.X.reshape(self.N[1],self.N[0])
 
-    def pseudocolor(self, savefig=None):
+    def pseudocolor(self, savefig=None, vscale=(0., 7.)):
         """Generate a pseudo-color plot of the solution
     pseudocolor(fig=None, savefig=None)
     
@@ -744,10 +745,15 @@ be cleared and used for constructing the plot.  If the savefig keyword
 is specified, it is treated as a file name to which the plot should be
 saved.
 """
-        ax = lplot.init_fig('y (mm)', 'x (mm)', figure_size=(6,6))
-        x,y = self.nodes()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        xmin,ymin = self.node(0,0)
+        xmax,ymax = self.node(*self.N)
         V = self.get_values()
-        ax.imshow(-V, aspect='equal', interpolation='bilinear', vmax=7., vmin=0.)
+        h = ax.imshow(-V, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymin,ymax))
+        ax.set_xlabel('x (mm)', fontsize=12)
+        ax.set_ylabel('y (mm)', fontsize=12)
+        fig.colorbar(h)
         if savefig:
             ax.get_figure().savefig(savefig)
         return ax

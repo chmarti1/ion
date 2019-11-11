@@ -38,8 +38,8 @@ def _p1proc(fullfile):
     print(thisfile)
     
     d = lc.LConf(fullfile, data=True, cal=True, dibits=True)
-    #theta_edge = (d.get_meta(0,'theta') % 360.) - 360.
-    theta_edge = -188. * np.pi / 180
+    theta_edge = -d.get_meta(0,'theta')
+    #theta_edge = -188. * np.pi / 180
     
     i_rising = d.get_dievents(0, edge='rising')
     i_falling = d.get_dievents(0, edge='falling')
@@ -55,29 +55,22 @@ def _p1proc(fullfile):
         i_start = 1
     i_rising = i_rising[i_start::2]
     
-    # Produce an angle signal
-    theta = np.ndarray((d.ndata(),), dtype=float)
-    # Log the transit time between pulses
+    # Initialize a list of angular velocity measurements
     w_rads = []
-    
-    # Extrapolate to establish the first samples
-    dt = 2*np.pi / (i_rising[1] - i_rising[0])
-    i_start = (i_rising[1] - 2*i_rising[0])
-    i_stop = (i_rising[1] - i_rising[0])
-    theta[:i_rising[0]] = theta_edge + dt*np.arange(i_start,i_stop)
-    # Loop through all full disc rotations
-    for ii in range(len(i_rising)-1):
-        w_rads.append(2.*np.pi/(d.get_time()[i_rising[ii+1]] - d.get_time()[i_rising[ii]]))
-        dt = 2*np.pi / (i_rising[ii+1] - i_rising[ii])
-        theta[i_rising[ii]:i_rising[ii+1]] = theta_edge + dt* np.arange(i_rising[ii+1]-i_rising[ii])
-    # Extrapolate to establish the final samples
-    dt = 2*np.pi / (i_rising[-1] - i_rising[-2])
-    i_stop = d.ndata()-i_rising[-1]
-    theta[i_rising[-1]:] = theta_edge + dt*np.arange(0,i_stop)
-    
     # grab the current data
     current_uA = d.get_channel(0)
+    # Make a theta array
+    theta = np.arange(theta_start, theta_stop, theta_step)
+    current_bins = [list() for th in theta]
     
+    for ii in range(len(i_rising)-1):
+        dth = 2*np.pi / (i_rising[ii+1] - i_rising[ii])
+        w_rads.append(d.get(0,'samplehz')*dth)
+        for th, thisbin in zip(theta, current_bins):
+            i_start_off = int(np.ceil((th - theta_edge - 0.5*theta_step)/ dth))
+            i_stop_off = int(np.ceil((th - theta_edge + 0.5*theta_step)/ dth))
+            thisbin += list(current_uA[i_rising[ii]+i_start_off:i_rising[ii]+i_stop_off])
+        
     # Write the data
     f = plt.figure(1)
     f.clf()
@@ -86,25 +79,31 @@ def _p1proc(fullfile):
     outfile = os.path.join(target_dir, thisid+'.p1d')
     with open(outfile,'w') as ff:
         ff.write('x %f\n'%d.get_meta(0,'x'))
-        #ff.write('y %f\n'%d.get_meta(0,'y'))
-        #ff.write('r %f\n'%d.get_meta(0,'wire_length') + 101.6)
+        ff.write('y %f\n'%d.get_meta(0,'y'))
+        ff.write('r %f\n'%d.get_meta(0,'r'))
         #ff.write('dw %f\n'%d.get_meta(0,'wire_diameter'))
+        ff.write('dw .254\n')
         ff.write('w %f\n'%np.mean(w_rads))
         ff.write('wstd %f\n'%np.std(w_rads))
         ff.write('# theta(rad)\tcount\tmean(uA)\tmedian(uA)\tstd dev(uA)\n')
-        for tt in np.arange(theta_start, theta_stop, theta_step):
-            I = np.logical_and(theta >= tt, theta < tt+theta_step)
-            count = np.sum(I)
-            mean = np.mean(current_uA[I])
-            median = np.median(current_uA[I])
-            std = np.std(current_uA[I])
-            ff.write('%f\t%d\t%f\t%f\t%f\n'%(tt+0.5*theta_step, count, mean, median, std))
-            ax.plot(theta[I], current_uA[I], 'b.')
-            ax.plot(tt, mean, 'g.')
-            ax.plot(tt, median, 'r.')
+        for th, thisbin in zip(theta,current_bins):
+            count = len(thisbin)
+            if count:
+                mean = np.mean(thisbin)
+                median = np.median(thisbin)
+                std = np.std(thisbin)
+            else:
+                mean = 0.
+                median = 0.
+                std = 0.
+            ff.write('%f\t%d\t%f\t%f\t%f\n'%(th, count, mean, median, std))
+            ax.plot(np.full((len(thisbin),), th), thisbin, 'b.')
+            ax.plot(th, mean, 'g.')
+            ax.plot(th, median, 'r.')
+        
+
 
     ax.grid(True)
-    ax.legend(loc=0)
     ax.set_xlabel('Angle (radians)')
     ax.set_ylabel('Signal ($\mu$A)')
     f.savefig(os.path.join(target_dir, thisid+'.png'))
@@ -153,6 +152,7 @@ for thisfile in contents:
     #thisfile = os.path.join(target_dir, '084.dat')
     if os.path.isfile(fullfile) and thisfile.endswith('.dat'):
         pool.apply_async(_p1proc, args=(fullfile,))
+        #_p1proc(fullfile)
     
 pool.close()
 pool.join()
