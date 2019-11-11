@@ -19,23 +19,24 @@ datadir = path.abspath(time.strftime("../data/%Y%m%d%H%M%S", start))
 configfile = 'wscan.conf'
 
 while True:
-    print('Enter the disc angle observed under the front edge of the platform\n' +
-        'at the rising edge of the photointerrupter')
+    print('> Enter the disc angle observed under the front edge of the platform')
+    print('  at the rising edge of the photointerrupter.')
     rising_edge_angle = -(np.pi/180.) * float(input('(deg):')) + disc_offset_angle
-    print('Using offset angle %f deg'%(disc_offset_angle * 180. / np.pi))
-    print('Rising edge angle is %f deg from center'%(rising_edge_angle * 180. / np.pi))
-    print('Enter the wire length extending radially beyond the disc edge')
+    print('  Using offset angle %f deg'%(disc_offset_angle * 180. / np.pi))
+    print('  Rising edge angle is %f deg from center'%(rising_edge_angle * 180. / np.pi))
+    print('> Enter the wire length extending radially beyond the disc edge')
     wire_length = float(input('(mm):'))
-    print('Enter the disc direction of rotation.  The usual direciton is counter-clock-wise.')
+    print('> Enter the disc direction of rotation.')
+    print('  The usual direciton is counter-clock-wise.')
     rotation = int(input('(0=ccw, 1=cw):'))
-    print('Enter the power supply voltage.')
+    print('> Enter the power supply voltage.')
     wire_voltage = float(input('(V):'))
-    print('Enter the torch standoff from the work')
+    print('> Enter the torch standoff from the work')
     standoff = float(input('(mm):'))
-    print('Enter the total flow rate in scfh.')
-    total_scfh = float(input('(scfh):'))
-    print('Enter the F/O ratio.')
-    ratio_fto = float(input('(dless):'))
+    print('> Enter the distance from the torch tip in mm.  The torch tip is y=0,')
+    print('  and the work is in the positive direction.  This will be used to')
+    print('  position the torch.')
+    y = float(input('(mm):'))
     print('Who is entering these data?')
     initials = input('(initials):')
     print('')
@@ -60,12 +61,21 @@ elif rotation == 1:
         exit(-1)
     
 if len(initials) > 4 or len(initials) < 2:
-    print('This does not look like initials: ' + initials)
+    print('This does not look like a user''s initials: ' + initials)
     print('What are you trying to pull, anyway?')
     exit(-1)
 
+if y < 0.5 or y > 50.:
+	print('The y-value you entered was %fmm'%y)
+	print('Are you nuts!?')
+	exit(-1)
 
 os.mkdir(datadir)
+
+# Take a preliminary flow rate data file
+thisfile = path.join(datadir, 'flow.pre')
+cmd = 'lcburst -n 64 -c flow.conf -d %s'%thisfile
+os.system(cmd)
 
 # Loop through x locations
 # Start with x=0, loop outward skipping steps and come backwards filling in the
@@ -99,4 +109,10 @@ while x>=0.:
         x_incr = -x_incr
         
 cmd = 'movexy %f %f'%(x_start, y)
+os.system(cmd)
+
+
+# Take a post flow rate data file
+thisfile = path.join(datadir, 'flow.post')
+cmd = 'lcburst -n 64 -c flow.conf -d %s'%thisfile
 os.system(cmd)
