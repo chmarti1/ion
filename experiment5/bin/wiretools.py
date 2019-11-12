@@ -739,7 +739,7 @@ visualizing the solution
             raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
         return self.X.reshape(self.N[1],self.N[0])
 
-    def pseudocolor(self, savefig=None, vscale=(0., 7.)):
+    def pseudocolor(self, savefig=None, vscale=(0., 5.)):
         """Generate a pseudo-color plot of the solution
     pseudocolor(fig=None, savefig=None)
     
