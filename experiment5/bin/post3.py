@@ -11,8 +11,8 @@ data_dir = '../data'    # Where are the data?
 
 
 # Identify the data set directory from the command line argument
-source_spec = '756'
-#source_spec = sys.argv[1]
+#source_spec = '756'
+source_spec = sys.argv[1]
 # List all available data directories
 contents = os.listdir(data_dir)
 source_dir = None

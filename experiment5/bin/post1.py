@@ -25,7 +25,7 @@ import multiprocessing as mp
 import time
 
 # These are options that you might want to change before running this script...
-use_long = False        # Use the long or short pulse when finding the angle offset?
+use_long = True        # Use the long or short pulse when finding the angle offset?
 data_dir = '../data'    # Where are the data?
 theta_start = -0.3       # Exclude data not between theta_start and theta_stop
 theta_step = .001        # Organize the data into bins theta_step wide

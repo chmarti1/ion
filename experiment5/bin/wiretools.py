@@ -174,7 +174,10 @@ segments are parallel, then sA and sB are returned as None.
         
         result = []
         if test:
-            result.append(0<=sA and sA <=1 and 0<=sB and sB<=1)
+            if sA is not None and sB is not None:
+                result.append(0<=sA and sA <=1 and 0<=sB and sB<=1)
+            else:
+                result.append(False)
         if s:
             result += [sA, sB]
         return tuple(result)
