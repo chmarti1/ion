@@ -40,11 +40,7 @@ contents = os.listdir(post2_dir)
 # Create the target directory if it doesn't exist
 if not os.path.isdir(target_dir):
     os.mkdir(target_dir)
-elif input('Post 3 results already exist.  Overwrite? (y/n):') == 'y':
-    for thisfile in os.listdir(target_dir):
-        print('Removing ' + thisfile)
-        os.remove(os.path.join(target_dir, thisfile))
-else:
+elif not input('Post 3 results already exist.  Risk overwriteing? (y/n):') == 'y':
     print("Stopping.")
     exit(0)
 
