@@ -54,6 +54,6 @@ print("Loading Post 2 matrix results...")
 grid = wt.grid_load(post2_dir)
 print("Generating plots...")
 target = os.path.join(target_dir, 'pcolor.png')
-ax = grid.pseudocolor(savefig=target)
+ax = grid.pseudocolor(savefig=target, vscale=(0,7))
 
 
