@@ -23,3 +23,8 @@ Data collected at 1.5mm saturated with the calibration at 5V/10uA.
 2019 11 20 16:59:24
 2019 11 20 17:08:49
 Four slices at heights 1.5mm, 3mm, 6mm, 4.5mm.  The calibration was set to 4V/10uA (2.5uA/V).
+
+2019 11 26 14:28:19
+2019 11 26 14:39:29
+2019 11 26 14:45:03
+Tests at 3mm height with calibration set to 3V/10uA while varying wire voltage 30V, 20V, 40V

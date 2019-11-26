@@ -18,5 +18,3 @@ clean:
 install: $(BIN_F)
 	cp monitor.bin $(BIN_D)/monitor
 	cp monitor.conf $(BIN_D)/monitor.conf
-	cp $(LCONFIG_PY) $(BIN_D)/lconfig.py
-	cp $(LPLOT_PY) $(BIN_D)/lplot.py

@@ -85,8 +85,8 @@ int main(){
 		lc_update_ef(&dconf[MON_RPMDEV]);
 	
 		if(dconf[MON_RPMDEV].efch[0].time){
-			lct_print_flt(MON_RPM_ROW, MON_COLUMN, 1e6/dconf[MON_RPMDEV].efch[0].time);
-			lct_print_flt(MON_RPM_ROW+1, MON_COLUMN, 60e6/dconf[MON_RPMDEV].efch[0].time);
+			lct_print_flt(MON_RPM_ROW, MON_COLUMN, 0.5*1e6/dconf[MON_RPMDEV].efch[0].time);
+			lct_print_flt(MON_RPM_ROW+1, MON_COLUMN, 0.5*60e6/dconf[MON_RPMDEV].efch[0].time);
 		}else{
 			lct_print_flt(MON_RPM_ROW, MON_COLUMN, 0);
 			lct_print_flt(MON_RPM_ROW+1, MON_COLUMN, 0);
