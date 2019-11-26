@@ -513,6 +513,18 @@ application is careless.
 """
         return self.delta * (self.N-1.)
 
+    def coord(self, x, y, n=False):
+        """Return the index coordinates of the element containing the point x,y
+    i,j = G.coord(x,y)
+        OR
+    n = G.coord(x,y,n=True)
+"""
+        j = int(np.floor((y-self._yoffset)/self.delta))
+        i = int(np.floor(x/self.delta))
+        if n:
+            return self.ij_to_n(i,j)
+        return i,j
+
     def lam(self, R, d, theta):
         """Calculate the lambda vector from the wire location
     L = G.lam(self, R, d, theta)
@@ -739,24 +751,79 @@ visualizing the solution
             raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
         return self.X.reshape(self.N[1],self.N[0])
 
-    def pseudocolor(self, savefig=None, vscale=(0., 5.)):
+    def pseudocolor(self, ax=None, savefig=None, vscale=(0., 5.), colorbar=True, window=None, xlabel='x (mm)', ylabel='y (mm)', title=None):
         """Generate a pseudo-color plot of the solution
-    pseudocolor(fig=None, savefig=None)
+    pseudocolor(
+            ax=None, 
+            savefig=None, 
+            vscale=(0., 5.), 
+            colorbar=True, 
+            window=None
+            xlabel='x (mm)', ylabel='y (mm)',
+            title=None)
     
-If an integer figure number is given, then the corresponding figure will
-be cleared and used for constructing the plot.  If the savefig keyword
-is specified, it is treated as a file name to which the plot should be
-saved.
+ax
+    If a matplotlib axes object is passed to the ax keyword, the pseudocolor 
+    image will be generated in those axes.  Otherwise, a new figure with new
+    axes will be created automatically.  The axes used will be returned by the
+    method regardless.
+savefig
+    If the savefig keyword is given a file name, the figure containing the plot
+    will be saved to that file.
+vscale
+    The vscale tuple defines the minimum,maximum magnitude of wire current 
+    density to be used in the pseudo color scale.  Note that current magnitude 
+    is used and not current.
+colorbar
+    This keyword should be set to True/False to indicate whether a colorbar with
+    a scale should be added to the containing figure.
+window
+    If window is set to a four-element iterable, then it will be treated as x,y
+    coordinates for a window in the data to display.  The coordinates should be
+    specified as
+        window = [xmin, ymin, xmax, ymax]
+    where x(y)min and x(y)max are in mm.
+xlabel
+ylabel
+    These are the text labels applied to the x- and y-axes.  If they are set to
+    None, then both the axis ticks and the labels will be eliminated.
+title
+    This title will be applied to the axes.
 """
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        xmin,ymin = self.node(0,0)
-        xmax,ymax = self.node(*self.N)
-        V = self.get_values()
-        h = ax.imshow(-V, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymin,ymax))
-        ax.set_xlabel('x (mm)', fontsize=12)
-        ax.set_ylabel('y (mm)', fontsize=12)
-        fig.colorbar(h)
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        else:
+            fig = ax.get_figure()
+        if window is not None:
+            xmin, ymin, xmax, ymax = window
+            imin,jmin = self.coord(xmin,ymin)
+            imax,jmax = self.coord(xmax,ymax)
+            xmin,ymin = self.node(imin,jmin)
+            xmax,ymax = self.node(imax,jmax)
+            V = self.get_values()[jmin:jmax, imin:imax]
+        else:
+            xmin,ymin = self.node(0,0)
+            xmax,ymax = self.node(*self.N)
+            V = self.get_values()
+        h = ax.imshow(-V, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymax,ymin))
+        
+        if xlabel is None:
+            ax.set_xlabel(None)
+            ax.set_xticks([])
+        else:
+            ax.set_xlabel(xlabel, fontsize=12)
+        if ylabel is None:
+            ax.set_ylabel(None)
+            ax.set_yticks([])
+        else:
+            ax.set_ylabel(ylabel, fontsize=12)
+            
+        if title:
+            ax.set_title(title, fontsize=12)
+            
+        if colorbar:
+            fig.colorbar(h)
         if savefig:
             ax.get_figure().savefig(savefig)
         return ax
