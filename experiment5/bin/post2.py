@@ -25,7 +25,7 @@ import time
 
 # These are options that you might want to change before running this script...
 data_dir = '../data'    # Where are the data?
-Nx = 80     # How many x-points
+Nx = 75      # How many x-points
 Ny = 101     # How many y-points
 delta = 0.25
 
