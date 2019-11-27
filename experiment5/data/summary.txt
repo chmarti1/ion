@@ -27,4 +27,5 @@ Four slices at heights 1.5mm, 3mm, 6mm, 4.5mm.  The calibration was set to 4V/10
 2019 11 26 14:28:19
 2019 11 26 14:39:29
 2019 11 26 14:45:03
-Tests at 3mm height with calibration set to 3V/10uA while varying wire voltage 30V, 20V, 40V
+Tests at 3mm height with calibration set to 3V/10uA while varying wire voltage 30V, 20V, 40V.
+Post processing showed that the disc speed was apparently 800rpm instead of 400.  This coincides with a re-compiling of monitor.bin.  Error?

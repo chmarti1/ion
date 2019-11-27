@@ -28,7 +28,7 @@ import time
 use_long = True        # Use the long or short pulse when finding the angle offset?
 data_dir = '../data'    # Where are the data?
 theta_start = -0.3       # Exclude data not between theta_start and theta_stop
-theta_step = .001        # Organize the data into bins theta_step wide
+theta_step = .002        # Organize the data into bins theta_step wide
 theta_stop = 0.3
 
 def _p1proc(fullfile):
