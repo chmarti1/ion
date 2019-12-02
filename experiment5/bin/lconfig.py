@@ -684,7 +684,9 @@ If param is a list or tuple, then the result will be returned as a tuple.
 """
         if isinstance(param, (tuple, list)):
             return tuple([self.get_meta(devnum, this) for this in param])
-        return self._devconf[devnum]['meta'][param]
+        if param in self._devconf[devnum]['meta']:
+            return self._devconf[devnum]['meta'][param]
+        return None
 
 
     def get_channel(self, aich, downsample=None, start=None, stop=None):

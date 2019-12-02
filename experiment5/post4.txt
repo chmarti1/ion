@@ -1,3 +1,4 @@
-/home/chris/Documents/ion/experiment5/data/20191120170849
-/home/chris/Documents/ion/experiment5/data/20191120165924
-/home/chris/Documents/ion/experiment5/data/20191120164928
+/home/calc/Documents/ion/experiment5/data/20191120163922
+/home/calc/Documents/ion/experiment5/data/20191120164928
+/home/calc/Documents/ion/experiment5/data/20191120170849
+/home/calc/Documents/ion/experiment5/data/20191120165924
