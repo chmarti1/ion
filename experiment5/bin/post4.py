@@ -46,12 +46,15 @@ for source_spec in sys.argv[1:]:
 # Now that we've checked the source directories, let's start building the plots
 tstart = time.localtime()
 # What are the output files?
-target_png = os.path.abspath('../post4.png')
+target = os.path.abspath('../post4.pdf')
 target_summary = os.path.abspath('../post4.txt')
 
 fig = plt.figure()
 nplots = len(source_list)
-fig.set_size_inches([4., 4.*nplots])
+nhorizontal = min(nplots,3)
+nvertical = nplots // nhorizontal + 1
+
+fig.set_size_inches([4.*nhorizontal, 4.*nvertical])
 axes = []
 with open(target_summary, 'w') as sumff:
     for index, source_dir in enumerate(source_list):
@@ -66,14 +69,23 @@ with open(target_summary, 'w') as sumff:
         print("Loading Post 2 matrix results...")
         grid = wt.grid_load(post2_dir)
         
-        ax = fig.add_subplot(nplots,1,index+1)
+        ax = fig.add_subplot(nvertical,nhorizontal,index+1)
         axes.append(ax)
         #h =grid.pseudocolor(ax=ax, vscale=vscale, colorbar=False)
-        if index == nplots-1:
-            h = grid.pseudocolor(ax=ax, vscale=vscale, window=window, colorbar=False, title='z=%.1fmm'%z)
-        else:
-            grid.pseudocolor(ax=ax, vscale=vscale, window=window, colorbar=False, xlabel=None, title='z=%.1fmm'%z)
+        pscargs = {'ax':ax, 'vscale':vscale, 'window':window, 'colorbar':False, 'xlabel':None, 'ylabel':None, 'title':'z=%.1fmm'%z}
+        # If this is the first plot in the row
+        if index % nhorizontal == 0:
+            pscargs['ylabel'] = 'y (mm)'
+        # If this is the last plot in the column
+        if (index // nhorizontal) + 1 == nvertical:
+            pscargs['xlabel'] = 'x (mm)'
+        # If this is the last plot in the first row
+        if index+1 == nhorizontal:
+            pscargs['colorbar'] = True
+        grid.pseudocolor(**pscargs)
         ax.set_aspect('equal')
 
 #fig.colorbar(h, ax=axes)
-fig.savefig(target_png)
+#fig.savefig(target_png)
+#fig.savefig(target_pdf)
+fig.savefig(target)
