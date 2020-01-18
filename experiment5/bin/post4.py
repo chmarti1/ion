@@ -15,7 +15,7 @@ import time
 
 # These are options that you might want to change before running this script...
 data_dir = '../data'    # Where are the data?
-vscale = (0., 7.)
+vscale = (0., 1.5e18)
 window = [7., -2. ,17., 8.]
 
 # List all available data directories
@@ -72,7 +72,7 @@ with open(target_summary, 'w') as sumff:
         ax = fig.add_subplot(nvertical,nhorizontal,index+1)
         axes.append(ax)
         #h =grid.pseudocolor(ax=ax, vscale=vscale, colorbar=False)
-        pscargs = {'ax':ax, 'vscale':vscale, 'window':window, 'colorbar':False, 'xlabel':None, 'ylabel':None, 'title':'z=%.1fmm'%z}
+        pscargs = {'ax':ax, 'vscale':vscale, 'window':window, 'colorbar':False, 'xlabel':None, 'ylabel':None, 'title':'z=%.1fmm'%z, 'values':1}
         # If this is the first plot in the row
         if index % nhorizontal == 0:
             pscargs['ylabel'] = 'y (mm)'
@@ -80,8 +80,8 @@ with open(target_summary, 'w') as sumff:
         if (index // nhorizontal) + 1 == nvertical:
             pscargs['xlabel'] = 'x (mm)'
         # If this is the last plot in the first row
-        if index+1 == nhorizontal:
-            pscargs['colorbar'] = True
+        #if index+1 == nhorizontal:
+        #    pscargs['colorbar'] = True
         grid.pseudocolor(**pscargs)
         ax.set_aspect('equal')
 

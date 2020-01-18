@@ -12,6 +12,7 @@ import matplotlib as mpl
 #mpl.use('Agg')
 import matplotlib.pyplot as plt
 import lplot
+import csprobe
 
 
 def _csr_empty_row(A):
@@ -751,7 +752,7 @@ visualizing the solution
             raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
         return self.X.reshape(self.N[1],self.N[0])
 
-    def pseudocolor(self, ax=None, savefig=None, vscale=(0., 5.), colorbar=True, window=None, xlabel='x (mm)', ylabel='y (mm)', title=None):
+    def pseudocolor(self, ax=None, savefig=None, vscale=(0., .006), colorbar=True, window=None, xlabel='x (mm)', ylabel='y (mm)', title=None, values=0):
         """Generate a pseudo-color plot of the solution
     pseudocolor(
             ax=None, 
@@ -760,7 +761,8 @@ visualizing the solution
             colorbar=True, 
             window=None
             xlabel='x (mm)', ylabel='y (mm)',
-            title=None)
+            title=None,
+            values=0)
     
 ax
     If a matplotlib axes object is passed to the ax keyword, the pseudocolor 
@@ -789,6 +791,11 @@ ylabel
     None, then both the axis ticks and the labels will be eliminated.
 title
     This title will be applied to the axes.
+values
+    This integer selects what will be plotted:
+    0   The probe current per unit length
+    1   The ion density estimated by the small sheath model
+    2   The ion density estimated by the large sheath model
 """
         if ax is None:
             fig = plt.figure()
@@ -806,7 +813,12 @@ title
             xmin,ymin = self.node(0,0)
             xmax,ymax = self.node(*self.N)
             V = self.get_values()
-        h = ax.imshow(-V, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymax,ymin))
+            
+        # Convert to current per unit length
+        V *= -np.pi * csprobe.D
+        if values == 1:
+            V = csprobe.cs2_n(20., np.maximum(V,0.))
+        h = ax.imshow(V, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymax,ymin))
         
         if xlabel is None:
             ax.set_xlabel(None)
