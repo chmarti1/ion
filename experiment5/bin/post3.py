@@ -61,6 +61,6 @@ grid = wt.grid_load(post2_dir)
 print("Generating plots...")
 target = os.path.join(target_dir, 'pcolor.png')
 grid.density(V,U,D)
-ax = grid.pseudocolor(savefig=target, vscale=(0,1.5e18), values=1)
+ax = grid.pseudocolor(savefig=target, vscale=(0,3e18), values=1)
 #ax = grid.pseudocolor(savefig=target, vscale=(0,7), values=1)
 
