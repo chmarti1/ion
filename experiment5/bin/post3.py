@@ -3,12 +3,15 @@
 import os,sys
 import wiretools as wt
 import lplot as lp
+import lconfig as lc
 import time
 
 
 # These are options that you might want to change before running this script...
 data_dir = '../data'    # Where are the data?
-
+U = 75.
+D = .000254
+V = None
 
 # Identify the data set directory from the command line argument
 #source_spec = '756'
@@ -28,6 +31,13 @@ for this in contents:
 if source_dir is None:
     raise Exception('Did not file a data set ending in %s'%source_spec)
 #source_dir = '../data/20191016084713'   # which data set?
+
+# If the bias voltage is not explicitly specified, determine it from the
+# raw data files and adjust it for the voltage divider in the isoshunt
+if V is None:
+    dd = lc.LConf(os.path.join(source_dir,'000.dat'))
+    V = 0.9166*dd.get_meta(0,'vwire')
+
 
 # Has post2 been run on this data set?
 post2_dir = os.path.join(source_dir, 'post2')
@@ -50,6 +60,7 @@ print("Loading Post 2 matrix results...")
 grid = wt.grid_load(post2_dir)
 print("Generating plots...")
 target = os.path.join(target_dir, 'pcolor.png')
-ax = grid.pseudocolor(savefig=target, vscale=(0,7))
-
+grid.density(V,U,D)
+ax = grid.pseudocolor(savefig=target, vscale=(0,1.5e18), values=1)
+#ax = grid.pseudocolor(savefig=target, vscale=(0,7), values=1)
 

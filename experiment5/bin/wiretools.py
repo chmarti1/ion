@@ -12,7 +12,7 @@ import matplotlib as mpl
 #mpl.use('Agg')
 import matplotlib.pyplot as plt
 import lplot
-import csprobe
+from csprobe import cs2_n
 
 
 def _csr_empty_row(A):
@@ -347,6 +347,8 @@ set.
         self.A = None 
         self.B = None
         self.X = None
+        self.n = None
+        self.n_param = None
         
     def copy(self):
         """G2 = G1.copy()"""
@@ -740,6 +742,8 @@ Stores the result in self.X
         """Arrange the solution vector into a 2D array for plotting
     X = G.get_values()
 
+X is a 2D array with values that indicate wire current per unit area.
+
 This can be conveniently used with the NODES() member function for 
 visualizing the solution
     x,y = G.nodes()
@@ -751,6 +755,35 @@ visualizing the solution
         if self.X is None:
             raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
         return self.X.reshape(self.N[1],self.N[0])
+        
+    def density(self, V, U, D):
+        """Calculate ion density from the grid values
+    G.density(V, U, D)
+    
+The result is stored in the member object, n, and can be retrieved by
+referencing n directly or with the method, get_density().
+"""
+        if self.X is None:
+            raise Exception('The grid solution is not yet available.  Call the SOLVE() method first.')
+        self.n = cs2_n(V, np.maximum(-self.X*2*np.pi*D, 0.), U=U, D=D)
+        self.n_param = {'V': V, 'U':U, 'D':D}
+        
+        
+    def get_density(self):
+        """Arrange the ion density calculations into a 2D array for plotting
+    n = G.get_density()
+    
+This can be conveniently used with the NODES() member function for 
+visualizing the solution
+    x,y = G.nodes()
+    X = G.get_values()
+    plt.contour(x,y,X)
+        OR
+    plt.pcolormesh(x,y,X)
+"""
+        if self.n is None:
+            raise Exception('The ion density solution is not yet available.  Call the DENSITY() method first.')
+        return self.n.reshape(self.N[1],self.N[0])
 
     def pseudocolor(self, ax=None, savefig=None, vscale=(0., .006), colorbar=True, window=None, xlabel='x (mm)', ylabel='y (mm)', title=None, values=0):
         """Generate a pseudo-color plot of the solution
@@ -795,30 +828,30 @@ values
     This integer selects what will be plotted:
     0   The probe current per unit length
     1   The ion density estimated by the small sheath model
-    2   The ion density estimated by the large sheath model
 """
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111)
         else:
             fig = ax.get_figure()
+
+        if values == 0:
+            X = self.get_values()
+        elif values == 1:
+            X = self.get_density()
+
         if window is not None:
             xmin, ymin, xmax, ymax = window
             imin,jmin = self.coord(xmin,ymin)
             imax,jmax = self.coord(xmax,ymax)
             xmin,ymin = self.node(imin,jmin)
             xmax,ymax = self.node(imax,jmax)
-            V = self.get_values()[jmin:jmax, imin:imax]
+            X=X[jmin:jmax, imin:imax]
         else:
             xmin,ymin = self.node(0,0)
             xmax,ymax = self.node(*self.N)
-            V = self.get_values()
             
-        # Convert to current per unit length
-        V *= -np.pi * csprobe.D
-        if values == 1:
-            V = csprobe.cs2_n(20., np.maximum(V,0.))
-        h = ax.imshow(V, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymax,ymin))
+        h = ax.imshow(X, cmap='inferno', aspect='equal', interpolation='bilinear', vmax=vscale[1], vmin=vscale[0], extent=(xmin,xmax,ymax,ymin))
         
         if xlabel is None:
             ax.set_xlabel(None)
