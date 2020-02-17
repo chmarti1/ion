@@ -836,7 +836,7 @@ values
             fig = ax.get_figure()
 
         if values == 0:
-            X = self.get_values()
+            X = -self.get_values()
         elif values == 1:
             X = self.get_density()
 
