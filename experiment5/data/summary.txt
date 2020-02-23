@@ -29,3 +29,48 @@ Four slices at heights 1.5mm, 3mm, 6mm, 4.5mm.  The calibration was set to 4V/10
 2019 11 26 14:45:03
 Tests at 3mm height with calibration set to 3V/10uA while varying wire voltage 30V, 20V, 40V.
 Post processing showed that the disc speed was apparently 800rpm instead of 400.  This coincides with a re-compiling of monitor.bin.  Error?
+
+2019 12 2 10:58:07
+2019 12 2 11:09:33
+2019 12 2 11:19:02
+2019 12 2 11:28:43
+First detailed inner cone scan attempt; ran out of O2.
+
+2019 12 5 09:37:06
+2019 12 5 09:46:30
+2019 12 5 09:55:42
+2019 12 5 10:05:14
+2019 12 5 10:14:42
+2019 12 5 10:24:13
+2019 12 5 10:33:25
+High resolution inner cone scan at 25scfh 0.83f/o ratio.  Heights were from 1 to 4mm in 0.5mm increments.
+
+2020 1 15
+2020 1 16
+Three data sets with full probe immersion (20mm) while varying the probe voltage.  Wrote post5.py just to analyze these data.
+
+2020 1 27 16:14:32
+2020 1 27 16:20:24
+2020 1 27 16:29:43
+2020 1 27 16:39:18
+2020 1 27 16:49:17
+2020 1 27 16:58:41
+2020 1 27 17:08:32
+Outer cone scan at 21scfh 0.83f/o ratio.  Slices are from 4 to 9mm in 1mm increments.
+
+2020 2 3 16:55:59
+2020 2 3 17:08:32
+2020 2 3 17:15:32
+2020 2 3 17:25:16
+2020 2 3 17:34:46
+2020 2 3 17:44:33
+Outer cone scan at 17scfh 0.83f/o ratio.  Slices are from 3 to 8mm in 1mm increments.
+
+2020 2 17 16:03:06
+2020 2 17 16:13:02
+2020 2 17 16:27:16
+2020 2 17 16:37:38
+2020 2 17 16:47:54
+2020 2 17 16:57:42
+Outer cone scan at 25scfh 0.83f/o ratio.  Slices are from 4 to 10mm in 1mm increments; skipping 5mm.
+
