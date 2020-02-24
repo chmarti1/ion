@@ -43,7 +43,7 @@ First detailed inner cone scan attempt; ran out of O2.
 2019 12 5 10:14:42
 2019 12 5 10:24:13
 2019 12 5 10:33:25
-High resolution inner cone scan at 25scfh 0.83f/o ratio.  Heights were from 1 to 4mm in 0.5mm increments.
+High resolution inner cone scan at 21scfh 0.83f/o ratio.  Heights were from 1 to 4mm in 0.5mm increments.
 
 2020 1 15
 2020 1 16

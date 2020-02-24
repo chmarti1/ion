@@ -10,4 +10,29 @@ Temperature measurements were made at the coolant inlet and outlet.  A thermocou
 
 ## Data
 
-Data are organized into directories that indicate the disc diameter coupon over which they were collected.  The files include meta data describing the gas flow rates, the measured temperatures, and the standoff distance.
+Data are organized into directories that indicate the disc diameter coupon over which they were collected.  When tests over a particular diameter were repeated on different days, the new directories were created with an appended hyphenated index to indicate their order.  Each data file includes meta data describing the gas flow rates, the measured temperatures, and the standoff distance.
+
+
+## Files
+The `loadall.py` script is responsible for generating the `TABLE.wsv` file.  This is a tabulated collection of parameters extracted from the raw voltage-current data and the meta data embedded in each data file.  The individual data files are plain text written with the [lconfig](http://github.com/chmarti1/lconfig) laboratory experiment configuration system.  These files include embedded meta data that define the experimental conditions at which the test was run.  Then, the various `post_.py` scripts are responsible for generating the plots found in the export directory.
+
+The `TABLE.wsv` is a whitespace separated variable file with a row for every data set.  In the table are the various physical conditions under which the test was run and parameters that define a piece-wise linear fit of the current-voltage characteristic:
+
+
+| Header    | Description |
+|:---------:|-------------|
+|file_name  | The original raw data file name |
+|d_in       | Disc diameter (inches) |
+|flow_scfh  | Total gas flow rate (scfh) |
+|ratio_fto  | Fuel/Oxygen ratio by volume |
+|plate_t_c  | Copper surface temperature (degC) |
+|tip_t_c    | Torch tip temperature (degC) |
+|plate_q_kw | Heat transferred to the plate (kW) |
+|standoff_in| Standoff distance from coupon to torch tip (in) |
+|b1         | Regime-1 IV characteristic y-intercept (uA) |
+|R1         | Regime-1 IV characteristic slope (MOhm) |
+|b2         | Regime-2 IV characteristic y-intercept (uA) |
+|R2         | Regime-2 IV characteristic slope (MOhm) |
+|b3         | Regime-3 IV characteristic y-intercept (uA) |
+|R3         | Regime-3 IV characteristic slope (MOhm) |
+
