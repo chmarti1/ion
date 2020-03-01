@@ -2,7 +2,7 @@
 
 import os,sys
 
-workon = ['5559', '0553', '1532', '2516', '3446', '4433', '0306', '1302', '2716', '3738', '4754', '5742']
+workon = ['3412', '4140', '4929', '5357', '5713', '0405', '0814']
 
 
 datadir = '../data'
@@ -27,12 +27,9 @@ with open(logfile,'w') as lf:
             if not os.path.isdir(os.path.join(target, 'post1')):
                 lf.write('post1\n')
                 os.system('./post1.py ' + this)
-            if not os.path.isdir(os.path.join(target, 'post2')):
-                lf.write('post2\n')
-                os.system('./post2.py ' + this)
-            if not os.path.isdir(os.path.join(target, 'post3')):
-                lf.write('post3\n')
-                os.system('./post3.py ' + this)
+            if not os.path.isdir(os.path.join(target, 'post6')):
+                lf.write('post6\n')
+                os.system('./post6.py ' + this)
         except:
             lf.write(repr(sys.exc_info()) + '\n')
 

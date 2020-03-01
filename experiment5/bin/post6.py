@@ -107,7 +107,7 @@ def _load_post1(filename):
 ax1 = lp.init_fig('Wire Angle (rad)', 'Wire Current ($\mu$A)', label_size=16)
 ax1.grid(True)
 
-ax2 = lp.init_fig('z (mm)', 'I ($\mu$A)', label_size=16, 
+ax2 = lp.init_fig('z (mm)', 'I ($\mu$A)', label_size=16)
 ax2.set_xscale('log')
 ax2.set_yscale('log')
 ax2.grid(True, which='both')
@@ -123,16 +123,7 @@ contents = os.listdir(source_dir)
 contents.sort()
 for thisfile in contents:
     if thisfile.endswith('.p1d'):
-        data = []
-        with open(os.path.join(source_dir, thisfile), 'r') as ff:
-            # Throw away the header
-            thisline = ff.readline()
-            while thisline[0]!='#':
-                thisline = ff.readline()
-            thisline = ff.readline()
-            while thisline:
-                data.append([float(xx) for xx in thisline.split()])
-                thisline = ff.readline()
+        dims, data = _load_post1(os.path.join(source_dir, thisfile))
         data = np.asarray(data)
         II = np.logical_and( data[:,0] > theta_start,\
                 data[:,0] < theta_stop)
@@ -150,10 +141,10 @@ for thisfile in contents:
             if theta_low <= theta2 and theta_high > theta2:
                 I2.append(-data[index,3])
 
-ylim = ax.get_ylim()
+ylim = ax1.get_ylim()
 ax1.vlines([theta1, theta2], ylim[0], ylim[1], color=[.7, .7, .7], ls='--')
 ax1.get_figure().savefig(os.path.join(target_dir, 'profile.pdf'))
 
 ax2.loglog(Z, I1, 'ko', mec='k', mfc='w', label='Peak')
 ax2.loglog(Z, I2, 'ks', mec='k', mfc='w', label='Center')
-ax2.get_figure().savefig(os.path.join(target_dir, 'iz.pdf')
+ax2.get_figure().savefig(os.path.join(target_dir, 'iz.pdf'))
