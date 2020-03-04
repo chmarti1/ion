@@ -26,8 +26,9 @@ use_long = True        # Use the long or short pulse when finding the angle offs
 data_dir = '../data'    # Where are the data?
 theta_start = -0.03       # Exclude data not between theta_start and theta_stop
 theta_stop = 0.1
-theta1 = .0183
-theta2 = .0345
+theta1 = .025
+theta2 = .038
+z_start = 6.        # Perform the slope fit starting at z=?
 
 # Identify the data set directory from the command line argument
 source_spec = sys.argv[1]
@@ -47,8 +48,8 @@ if source_dir is None:
     raise Exception('Did not file a data set ending in %s'%source_spec)
     
     
-target_dir = os.path.join(source_dir, 'post6')
-source_dir = os.path.join(source_dir, 'post1')
+post6_dir = os.path.join(source_dir, 'post6')
+post1_dir = os.path.join(source_dir, 'post1')
 contents = os.listdir(source_dir)
 
 # Check for post 1 results
@@ -56,12 +57,12 @@ if not os.path.isdir(source_dir):
     raise Exception('Post 1 results do not seem to exist for this data set.')
 
 # Create the target directory if it doesn't exist
-if not os.path.isdir(target_dir):
-    os.mkdir(target_dir)
+if not os.path.isdir(post6_dir):
+    os.mkdir(post6_dir)
 elif input('Post 5 results already exist.  Overwrite? (y/n):') == 'y':
-    for thisfile in os.listdir(target_dir):
+    for thisfile in os.listdir(post6_dir):
         print('Removing ' + thisfile)
-        os.remove(os.path.join(target_dir, thisfile))
+        os.remove(os.path.join(post6_dir, thisfile))
 else:
     print("Stopping.")
     exit(0)
@@ -119,11 +120,11 @@ Z = []
 I1 = []
 I2 = []
 
-contents = os.listdir(source_dir)
+contents = os.listdir(post1_dir)
 contents.sort()
 for thisfile in contents:
     if thisfile.endswith('.p1d'):
-        dims, data = _load_post1(os.path.join(source_dir, thisfile))
+        dims, data = _load_post1(os.path.join(post1_dir, thisfile))
         data = np.asarray(data)
         II = np.logical_and( data[:,0] > theta_start,\
                 data[:,0] < theta_stop)
@@ -132,19 +133,48 @@ for thisfile in contents:
         
         # Build the I(Z) curves
         Z.append(dims['y'])
-        dtheta = (data[1,0] - data[0,0])/2.
-        for index in range(data.shape[0]-1):
-            theta_low = data[index,0]-dtheta
-            theta_high = data[index,0]+dtheta
-            if theta_low <= theta1 and theta_high > theta1:
-                I1.append(-data[index,3])
-            if theta_low <= theta2 and theta_high > theta2:
-                I2.append(-data[index,3])
+        # Calculate where the theta indices may be found
+        dtheta = (data[1,0] - data[0,0])
+        index = int((theta1 - data[0,0] - 0.5*dtheta)//dtheta)
+        I1.append(-data[index,3])
+        index = int((theta2 - data[0,0] - 0.5*dtheta)//dtheta)
+        I2.append(-data[index,3])
+        
+Z = np.asarray(Z, dtype=float)
+I1 = np.asarray(I1, dtype=float)
+I2 = np.asarray(I2, dtype=float)
 
+index = Z >= z_start
+C = np.polyfit(np.log(Z[index]),np.log(I2[index]),1)
+c0 = np.exp(C[1])
+c1 = C[0]
+
+# Check flow rates
+data = lc.LConf(os.path.join(source_dir,'flow.pre'), data=True, cal=True)
+fg_pre = np.mean(data.get_channel(0))
+o2_pre = np.mean(data.get_channel(1))
+
+data = lc.LConf(os.path.join(source_dir,'flow.post'), data=True, cal=True)
+fg_post = np.mean(data.get_channel(0))
+o2_post = np.mean(data.get_channel(1))
+
+# Generate output files
+# Profile plots
 ylim = ax1.get_ylim()
 ax1.vlines([theta1, theta2], ylim[0], ylim[1], color=[.7, .7, .7], ls='--')
-ax1.get_figure().savefig(os.path.join(target_dir, 'profile.pdf'))
-
+ax1.get_figure().savefig(os.path.join(post6_dir, 'profile.pdf'))
+# I vs Z plots
+ax2.loglog(Z[index], c0 * Z[index] ** c1, 'k-')
 ax2.loglog(Z, I1, 'ko', mec='k', mfc='w', label='Peak')
 ax2.loglog(Z, I2, 'ks', mec='k', mfc='w', label='Center')
-ax2.get_figure().savefig(os.path.join(target_dir, 'iz.pdf'))
+ax2.get_figure().savefig(os.path.join(post6_dir, 'iz.pdf'))
+# Analysis plot
+with open(os.path.join(post6_dir, 'post6.dat'),'w') as df:
+    df.write('fg_pre_scfh %.4f\n'%fg_pre)
+    df.write('o2_pre_scfh %.4f\n'%o2_pre)
+    df.write('fg_post_scfh %.4f\n'%fg_post)
+    df.write('o2_post_scfh %.4f\n'%o2_post)
+    df.write('total_scfh %.4f\n'%(fg_pre + o2_pre))
+    df.write('ratio_fo %.6f\n'%(fg_pre / o2_pre))
+    df.write('c0 %.8e\n'%c0)
+    df.write('c1 %.8e\n'%c1)

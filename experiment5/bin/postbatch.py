@@ -27,9 +27,12 @@ with open(logfile,'w') as lf:
             if not os.path.isdir(os.path.join(target, 'post1')):
                 lf.write('post1\n')
                 os.system('./post1.py ' + this)
-            if not os.path.isdir(os.path.join(target, 'post6')):
-                lf.write('post6\n')
-                os.system('./post6.py ' + this)
+                
+            p6dir = os.path.join(target, 'post6')
+            if os.path.isdir(p6dir):
+                os.system('rm -rf ' + p6dir)
+            lf.write('post6\n')
+            os.system('./post6.py ' + this)
         except:
             lf.write(repr(sys.exc_info()) + '\n')
 
