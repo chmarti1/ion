@@ -108,9 +108,7 @@ def _load_post1(filename):
 ax1 = lp.init_fig('Wire Angle (rad)', 'Wire Current ($\mu$A)', label_size=16)
 ax1.grid(True)
 
-ax2 = lp.init_fig('z (mm)', 'I ($\mu$A)', label_size=16)
-ax2.set_xscale('log')
-ax2.set_yscale('log')
+ax2 = lp.init_fig('z (mm)', '$I^{-4/3}$ ($\mu$A$^{-4/3}$)', label_size=16)
 ax2.grid(True, which='both')
 
 styles = ['k', 'k--', 'k-.', 'k:']
@@ -145,8 +143,8 @@ I1 = np.asarray(I1, dtype=float)
 I2 = np.asarray(I2, dtype=float)
 
 index = Z >= z_start
-C = np.polyfit(np.log(Z[index]),np.log(I2[index]),1)
-c0 = np.exp(C[1])
+C = np.polyfit(Z[index],I1[index]**(-1.3333),1)
+c0 = C[1]
 c1 = C[0]
 
 # Check flow rates
@@ -164,9 +162,10 @@ ylim = ax1.get_ylim()
 ax1.vlines([theta1, theta2], ylim[0], ylim[1], color=[.7, .7, .7], ls='--')
 ax1.get_figure().savefig(os.path.join(post6_dir, 'profile.pdf'))
 # I vs Z plots
-ax2.loglog(Z[index], c0 * Z[index] ** c1, 'k-')
-ax2.loglog(Z, I1, 'ko', mec='k', mfc='w', label='Peak')
-ax2.loglog(Z, I2, 'ks', mec='k', mfc='w', label='Center')
+ax2.plot(Z[index], c0 + Z[index] * c1, 'k-')
+ax2.plot(Z, I1**(-1.3333), 'ko', mec='k', mfc='w', label='Peak')
+ax2.plot(Z, I2**(-1.3333), 'ks', mec='k', mfc='w', label='Center')
+ax2.legend(loc=0)
 ax2.get_figure().savefig(os.path.join(post6_dir, 'iz.pdf'))
 # Analysis plot
 with open(os.path.join(post6_dir, 'post6.dat'),'w') as df:
@@ -178,3 +177,4 @@ with open(os.path.join(post6_dir, 'post6.dat'),'w') as df:
     df.write('ratio_fo %.6f\n'%(fg_pre / o2_pre))
     df.write('c0 %.8e\n'%c0)
     df.write('c1 %.8e\n'%c1)
+    df.write('Uc1 %.8e\n'%(c1 * (fg_pre + o2_pre)))
