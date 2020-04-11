@@ -218,6 +218,19 @@ Added the __version__ constant to track changes.
 
 1.3     (2020-03-30)
 - Added the AnchoredFiniteIon1D model
+- This version of the AnchoredFiniteIon1D model has a bug in its init_grid() method
+
+1.4     (2020-04-02)
+- Added voltage perturbation analysis to init_post()
+- Changed version to a string
+- Corrected a bug in the grid definition of the AnchoredFiniteIon1D model.
+
+1.5     (2020-04-05)
+- Added the model name to the post dictionary
+- Added more options to the load_post() function.
+
+1.6     (2020-04-06)
+- Added the ion1d version and the model string to the post dict
 """
 
 import numpy as np
@@ -228,6 +241,7 @@ from miscpy import sparsen as spn
 import matplotlib.pyplot as plt
 import os
 import json
+import ion1d as __ion1d
 
 # Constants are in mks units
 const_e = 1.6021765658368782e-19    # Fundamental charge
@@ -235,16 +249,35 @@ const_ep = 8.854187817e-12          # Permittivity of free space
 const_k = 1.38064852e-23           # Botlzmann's constant
 
 
-__version__ = 1.3
+__version__ = '1.6'
 
 
-def load_post(source, verbose=True, loadnpy=True):
+def load_post(source, verbose=True, loadnpy=True, loadmodel=True, loadparam=True):
     """Load the post-processing results of a model run
     post = load_post('/path/to/source/dir')
     
 The load_post() function is responsible for rebuilding the post dict saved by
 the Ion1D class's save_post() member method.  This allows detailed results from
 a model to be saved for later retrieval.
+
+There are optional keywords that configure the behavior of load_post().  These
+are their defaults and their behaviors...
+
+verbose = True
+Print a summary of data as it is being loaded.
+
+loadnpy = True
+If True, all strings that refer to a *.npy file in the post directory will be
+loaded and converted to numpy array objects.  If False, they will be left as
+strings
+
+loadmodel = True
+If True, the model string should be converted into the corresponding Ion1D class.
+If False, it will be left as a string.
+
+loadparam = True
+If True, the param dictionary will be converted to an IonParam object.  If False,
+it will be left as a dictionary.
 """
     # Force absolute paths
     source = os.path.abspath(source)
@@ -263,8 +296,15 @@ a model to be saved for later retrieval.
     except:
         raise Exception('Failed to parse the post json file: ' + postfile)
         
-    if 'param' in post:
+    if loadparam and 'param' in post:
         post['param'] = IonParam(**post['param'])
+        
+    if loadmodel and 'model' in post:
+        if post['model'] in __ion1d.__dict__:
+            post['model'] = __ion1d.__dict__[post['model']]
+        else:
+            print('LOAD_POST::WARNING: Did not find the model: ' + repr(post['model']))
+        
         
     if not loadnpy:
         return post
@@ -894,30 +934,23 @@ if the solution is diverging"""
         D = spn.SparseN((N,N))
         DD = spn.SparseN((N,N))
         
-        # Start at the boundary node z=0
-        dz10 = self.z[1] - self.z[0]
-        dz21 = self.z[2] - self.z[1]
-        dz20 = dz21 + dz10
-        # Use only the two boundary nodes to construct the derivative
-        ap = -(dz10 + dz20)/(dz20 * dz10)
-        bp = dz20/(dz10*dz21)
-        cp = -dz10/(dz20*dz21)
-        D.index.append((0,0))
-        D.value.append(ap)
-        D.index.append((0,1))
-        D.value.append(bp)
-        D.index.append((0,2))
-        D.value.append(cp)
-        # Reach in one extra node to construct the second derivative
-        app = 2 / (dz10 * dz20)
-        bpp = -2 / (dz10 * dz21)
-        cpp = 2 / (dz20 * dz21)
-        DD.index.append((0,0))
-        DD.value.append(app)
-        DD.index.append((0,1))
-        DD.value.append(bpp)
-        DD.index.append((0,2))
-        DD.value.append(cpp)
+        # Initialize a solution matrix to perform the voltage perturbation
+        # anlaysis.
+        A = np.zeros((3*N,3*N))
+        C = np.zeros((3*N,))
+        
+        # First derivatives
+        eta_d = np.ndarray((N,))
+        nu_d = np.ndarray((N,))
+        phi_d = np.ndarray((N,))
+        # Second derivatives
+        eta_dd = np.ndarray((N,))
+        nu_dd = np.ndarray((N,))
+        phi_dd = np.ndarray((N,))
+        # Voltage perturbation results
+        eta_1 = np.ndarray((N,))
+        nu_1 = np.ndarray((N,))
+        phi_1 = np.ndarray((N,))
         
         # Move on to the internal nodes
         for k in range(1,N-1):
@@ -934,23 +967,85 @@ if the solution is diverging"""
             bpp = -2 / (dz10 * dz21)
             cpp = 2 / (dz20 * dz21)
             
-            D.index.append((k,k-1))
-            D.value.append(ap)
+            # Calculate eta_d, nu_d, and phi_d
+            e_d = ap*self.eta[k-1] + bp*self.eta[k] + cp*self.eta[k+1]
+            n_d = ap*self.nu[k-1] + bp*self.nu[k] + cp*self.nu[k+1]
+            p_d = ap*self.phi[k-1] + bp*self.phi[k] + cp*self.phi[k+1]
+            # Calculate eta_dd, nu_dd, and phi_dd
+            e_dd = app*self.eta[k-1] + bpp*self.eta[k] + cpp*self.eta[k+1]
+            n_dd = app*self.nu[k-1] + bpp*self.nu[k] + cpp*self.nu[k+1]
+            p_dd = app*self.phi[k-1] + bpp*self.phi[k] + cpp*self.phi[k+1]
             
-            D.index.append((k,k))
-            D.value.append(bp)
+            eta_d[k] = e_d
+            nu_d[k] = n_d
+            phi_d[k] = p_d
             
-            D.index.append((k,k+1))
-            D.value.append(cp)
+            eta_dd[k] = e_dd
+            nu_dd[k] = n_dd
+            phi_dd[k] = p_dd
             
-            DD.index.append((k,k-1))
-            DD.value.append(app)
+            # For convenience, point to eta[k], nu[k] and phi[k]
+            e_ = self.eta[k]
+            n_ = self.nu[k]
+            p_ = self.phi[k]
             
-            DD.index.append((k,k))
-            DD.value.append(bpp)
+            eta_k = k
+            nu_k = eta_k + N
+            phi_k = nu_k + N
+
+            # Calculate a couple of intermediate parameters
+            Re = p.R / (p.mu * p.tau)   # Electric R
+            aa = p.alpha * p.alpha      # alpha squared
             
-            DD.index.append((k,k+1))
-            DD.value.append(cpp)
+            # Calculate the solution matrix for the perturbation analysis
+            A[eta_k, eta_k-1] = app/p.R - ap + p.tau/p.R*(ap*p_d)
+            A[eta_k, eta_k] = bpp/p.R - bp + p.tau/p.R*(bp*p_d + p_dd) - p.beta*n_
+            A[eta_k, eta_k+1] = cpp/p.R - cp + p.tau/p.R*(cp*p_d)
+            A[eta_k, nu_k] = -p.beta*e_
+            A[eta_k, phi_k-1] = p.tau/p.R*(ap*e_d + app*e_)
+            A[eta_k, phi_k] = p.tau/p.R*(bp*e_d + bpp*e_)
+            A[eta_k, phi_k+1] = p.tau/p.R*(cp*e_d + cpp*e_)
+
+            A[nu_k, nu_k-1] = app/Re - ap - (ap*p_d)/Re
+            A[nu_k, nu_k] = bpp/Re - bp - (bp*p_d + p_dd)/Re - p.beta*e_
+            A[nu_k, nu_k+1] = cpp/Re - cp - (cp*p_d)/Re
+            A[nu_k, eta_k] = -p.beta*n_
+            A[nu_k, phi_k-1] = -(ap*n_d + app*n_)/Re
+            A[nu_k, phi_k] = -(bp*n_d + bpp*n_)/Re
+            A[nu_k, phi_k+1] = -(cp*n_d + cpp*n_)/Re
+
+            A[phi_k, phi_k-1] = aa*app
+            A[phi_k, phi_k] = aa*bpp
+            A[phi_k, phi_k+1] = aa*cpp
+            A[phi_k, eta_k] = 1
+            A[phi_k, nu_k] = -1
+            
+        # Deal with the end-points
+        # Start at the boundary node z=0
+        dz10 = self.z[1] - self.z[0]
+        dz21 = self.z[2] - self.z[1]
+        dz20 = dz21 + dz10
+        # Use only the two boundary nodes to construct the derivative
+        ap = -(dz10 + dz20)/(dz20 * dz10)
+        bp = dz20/(dz10*dz21)
+        cp = -dz10/(dz20*dz21)
+
+        app = 2 / (dz10 * dz20)
+        bpp = -2 / (dz10 * dz21)
+        cpp = 2 / (dz20 * dz21)
+        
+        eta_d[0] = ap*self.eta[0] + bp*self.eta[1] + cp*self.eta[2]
+        nu_d[0] = ap*self.nu[0] + bp*self.nu[1] + cp*self.nu[2]
+        phi_d[0] = ap*self.phi[0] + bp*self.phi[1] + cp*self.phi[2]
+        
+        eta_dd[0] = app*self.eta[0] + bpp*self.eta[1] + cpp*self.eta[2]
+        nu_dd[0] = app*self.nu[0] + bpp*self.nu[1] + cpp*self.nu[2]
+        phi_dd[0] = app*self.phi[0] + bpp*self.phi[1] + cpp*self.phi[2]
+
+        A[0,0] = 1
+        A[N,N] = 1
+        A[2*N,2*N] = 1
+        C[2*N] = 1
 
         # Finish at the boundary node z=1
         dz10 = self.z[-2] - self.z[-3]
@@ -959,40 +1054,39 @@ if the solution is diverging"""
         ap = dz21/(dz20*dz10)
         bp = -dz20/(dz10*dz21)
         cp = (dz20 + dz21)/(dz20*dz21)
-        # Use only the two boundary nodes to construct the derivative
-        D.index.append((N-1,N-3))
-        D.value.append(ap)
-        D.index.append((N-1,N-2))
-        D.value.append(bp)
-        D.index.append((N-1,N-1))
-        D.value.append(cp)
+
         # Reach in one extra node to construct the second derivative
         app = 2 / (dz10 * dz20)
         bpp = -2 / (dz10 * dz21)
         cpp = 2 / (dz20 * dz21)
-        DD.index.append((N-1,N-3))
-        DD.value.append(app)
-        DD.index.append((N-1,N-2))
-        DD.value.append(bpp)
-        DD.index.append((N-1,N-1))
-        DD.value.append(cpp)
+
+        eta_d[-1] = ap*self.eta[-3] + bp*self.eta[-2] + cp*self.eta[-1]
+        nu_d[-1] = ap*self.nu[-3] + bp*self.nu[-2] + cp*self.nu[-1]
+        phi_d[-1] = ap*self.phi[-3] + bp*self.phi[-2] + cp*self.phi[-1]
         
-        # Calculate the derivatives of the solution
-        eta_d = D.dot( 1,0, self.eta, asdense=True)
-        nu_d = D.dot(  1,0, self.nu,  asdense=True)
-        phi_d = D.dot( 1,0, self.phi, asdense=True)
+        eta_dd[-1] = app*self.eta[-3] + bpp*self.eta[-2] + cpp*self.eta[-1]
+        nu_dd[-1] = app*self.nu[-3] + bpp*self.nu[-2] + cpp*self.nu[-1]
+        phi_dd[-1] = app*self.phi[-3] + bpp*self.phi[-2] + cpp*self.phi[-1]
         
-        eta_dd = DD.dot(1,0, self.eta, asdense=True)
-        nu_dd = DD.dot( 1,0, self.nu,  asdense=True)
-        phi_dd = DD.dot(1,0, self.phi, asdense=True)
+        A[N-1,N-1] = 1
+        A[2*N-1, 2*N-1] = 1
+        A[3*N-1, 3*N-1] = 1
+        
+        X1 = np.linalg.solve(A,C)
+        eta_1 = X1[:N]
+        nu_1 = X1[N:2*N]
+        phi_1 = X1[2*N:]
         
         self.post.update({
+            'version':__version__,
+            'model':self.__class__.__name__,
             'param':self.param.asdict(),
             'z':self.z,
             'etaE':self.etaE,
             'eta':self.eta,
             'eta.d':eta_d,
             'eta.dd':eta_dd,
+            'eta.1':eta_1,
             'F.i.c':self.eta,
             'F.i.d':-(1./p.R) * eta_d,
             'F.i.e': -(p.tau/p.R) * self.eta * phi_d,
@@ -1000,6 +1094,7 @@ if the solution is diverging"""
             'nu':self.nu,
             'nu.d':nu_d,
             'nu.dd':nu_dd,
+            'nu.1':nu_1,
             'F.e.c':self.nu,
             'F.e.d':-(p.mu/p.R) * nu_d,
             'F.e.e':(p.mu/p.R) * self.nu * phi_d,
@@ -1007,15 +1102,35 @@ if the solution is diverging"""
             'phi':self.phi,
             'phi.d':phi_d,
             'phi.dd':phi_dd,
+            'phi.1':phi_1,
             'rec':p.beta * self.eta*self.nu,
             'charge':self.eta - self.nu,
-            'efield':-phi_d
+            'efield':-phi_d,
+            'A':A,
+            'C':C
         })
-
+        # Calculate ion fluxes
         self.post['F.i'] = self.post['F.i.e'] + self.post['F.i.c'] + self.post['F.i.d']
         self.post['F.e'] = self.post['F.e.e'] + self.post['F.e.c'] + self.post['F.e.d']
-        self.post['J'] = self.post['F.i'][0] - self.post['F.e'][0]
-        
+        # Calculate currents to/from the torch
+        self.post['J.i'] = self.post['F.i'][0]
+        self.post['J.e'] = -self.post['F.e'][0]
+        self.post['J'] = self.post['J.i'] + self.post['J.e']
+        # Calculate first perturbation currents
+        # Time to re-visit the derivative at the tip
+        dz10 = self.z[1] - self.z[0]
+        dz21 = self.z[2] - self.z[1]
+        dz20 = dz21 + dz10
+        ap = -(dz10 + dz20)/(dz20 * dz10)
+        bp = dz20/(dz10*dz21)
+        cp = -dz10/(dz20*dz21)
+        eta_1d = ap*eta_1[0] + bp*eta_1[1] + cp*eta_1[2]
+        nu_1d = ap*nu_1[0] + bp*nu_1[1] + cp*nu_1[2]
+        phi_1d = ap*phi_1[0] + bp*phi_1[1] + cp*phi_1[2]
+        # Go
+        self.post['J.i.1'] = -eta_1d/p.R + eta_1[0] - p.tau/p.R * (eta_1[0]*phi_d[0] + self.eta[0]*phi_1d)
+        self.post['J.e.1'] = nu_1d/Re - nu_1[0] - 1./Re * (nu_1[0]*phi_d[0] + self.nu[0]*phi_1d)
+        self.post['J.1'] = self.post['J.i.1'] + self.post['J.e.1']
         
         self.initstate = 4
         
@@ -1463,7 +1578,6 @@ omega       Formation rate = 1./z1.  User values are overwritten.
         p.tau = 1.
         p.phia = 0.
         p.z1 = None
-        p.z2 = None
         # Read in the arguments
         if arg is not None:
             p.set(arg)
@@ -1600,23 +1714,23 @@ more uniform grid spacings or by experimenting with different r-values.
                 raise Exception('If r is specified, it must be a three-element array-like of floats')
         
         # Modify the nominal grid spacing to arrive at element counts
-        N1 = int(np.ceil(p.z1 / d0))
-        N2 = int(np.ceil(p.z1 / d1))
+        N0 = int(np.ceil(p.z1 / d0))
+        N1 = int(np.ceil((1-p.z1) / d1))
         
         # Calculate the spacing at the interface
         d01 = r1 * 0.5 * (d0+d1)
         
         try:
-            zz1 = p.z1*cubicgrid(N1, r0, d01/d0, stop=False)
+            zz0 = p.z1*cubicgrid(N0, r0, d01/d0, stop=False)
         except:
             raise Exception('These settings caused the up-stream zone (0<=z<z1) to be non-monotonic.  Try new values for d0, d1, or r1.')
         try:
-            zz2 = p.z1 + (1.-p.z1)*cubicgrid(N2, d01/d1, d12/d1, stop=False)
+            zz1 = p.z1 + (1.-p.z1)*cubicgrid(N1, d01/d1, r2, stop=False)
         except:
             raise Exception('These settings caused the reaction zone (z1<=z<=1) to be non-monotonic.  Try new values for d or r.')
             
-        self.z = np.concatenate((zz1,zz2))
-        self.k = [N1]
+        self.z = np.concatenate((zz0,zz1))
+        self.k = [N0]
         self.initstate = 1
 
     def init_mat(self):

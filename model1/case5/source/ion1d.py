@@ -224,6 +224,13 @@ Added the __version__ constant to track changes.
 - Added voltage perturbation analysis to init_post()
 - Changed version to a string
 - Corrected a bug in the grid definition of the AnchoredFiniteIon1D model.
+
+1.5     (2020-04-05)
+- Added the model name to the post dictionary
+- Added more options to the load_post() function.
+
+1.6     (2020-04-06)
+- Added the ion1d version and the model string to the post dict
 """
 
 import numpy as np
@@ -234,6 +241,7 @@ from miscpy import sparsen as spn
 import matplotlib.pyplot as plt
 import os
 import json
+import ion1d as __ion1d
 
 # Constants are in mks units
 const_e = 1.6021765658368782e-19    # Fundamental charge
@@ -241,16 +249,35 @@ const_ep = 8.854187817e-12          # Permittivity of free space
 const_k = 1.38064852e-23           # Botlzmann's constant
 
 
-__version__ = '1.4'
+__version__ = '1.6'
 
 
-def load_post(source, verbose=True, loadnpy=True):
+def load_post(source, verbose=True, loadnpy=True, loadmodel=True, loadparam=True):
     """Load the post-processing results of a model run
     post = load_post('/path/to/source/dir')
     
 The load_post() function is responsible for rebuilding the post dict saved by
 the Ion1D class's save_post() member method.  This allows detailed results from
 a model to be saved for later retrieval.
+
+There are optional keywords that configure the behavior of load_post().  These
+are their defaults and their behaviors...
+
+verbose = True
+Print a summary of data as it is being loaded.
+
+loadnpy = True
+If True, all strings that refer to a *.npy file in the post directory will be
+loaded and converted to numpy array objects.  If False, they will be left as
+strings
+
+loadmodel = True
+If True, the model string should be converted into the corresponding Ion1D class.
+If False, it will be left as a string.
+
+loadparam = True
+If True, the param dictionary will be converted to an IonParam object.  If False,
+it will be left as a dictionary.
 """
     # Force absolute paths
     source = os.path.abspath(source)
@@ -269,8 +296,15 @@ a model to be saved for later retrieval.
     except:
         raise Exception('Failed to parse the post json file: ' + postfile)
         
-    if 'param' in post:
+    if loadparam and 'param' in post:
         post['param'] = IonParam(**post['param'])
+        
+    if loadmodel and 'model' in post:
+        if post['model'] in __ion1d.__dict__:
+            post['model'] = __ion1d.__dict__[post['model']]
+        else:
+            print('LOAD_POST::WARNING: Did not find the model: ' + repr(post['model']))
+        
         
     if not loadnpy:
         return post
@@ -1044,6 +1078,8 @@ if the solution is diverging"""
         phi_1 = X1[2*N:]
         
         self.post.update({
+            'version':__version__,
+            'model':self.__class__.__name__,
             'param':self.param.asdict(),
             'z':self.z,
             'etaE':self.etaE,

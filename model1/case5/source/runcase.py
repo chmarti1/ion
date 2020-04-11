@@ -8,8 +8,8 @@ import multiprocessing as mp
 datadir = '../data'
 baseline = '../baseline'
 
-phimin = -80.
-phimax = 20.
+phimin = -50.
+phimax = 40.
 phistep = 2.
 
 datadir = os.path.abspath(datadir)
@@ -17,7 +17,18 @@ baseline = os.path.abspath(baseline)
 
 if not os.path.isdir(datadir):
     os.mkdir(datadir)
-print('Using data directory: ' + datadir)
+else:
+    charin = ' '
+    while charin not in 'Yn':
+        charin = input('Found existing data. Remove existing? (Y/n):')
+        if charin == 'n':
+            print('Halting.')
+            exit(0)
+    print('Removing existing data...')
+    os.system('rm -rvf ' + datadir)
+    os.mkdir(datadir)
+    
+print('Using fresh data directory: ' + datadir)
 
 def worker(worker_ipm):
     firstrun = True
@@ -67,9 +78,9 @@ if __name__ == '__main__':
     print('Starting the calculations')
     
     # Steal parameters from baseline
-    blp = ion1d.load_post(baseline, loadnpy=False)
+    blp = ion1d.load_post(baseline, loadnpy=False, loadparam=False)
     # Modify phia to be an array of applied voltages
-    p = blp['param'].asdict().copy()
+    p = blp['param']
     p['phia'] = np.arange(phimin, phimax, phistep)
     # Generate a parameter manager for these cases
     ipm = ion1d.IonParamManager(p)
