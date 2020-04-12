@@ -240,9 +240,8 @@ from scipy import sparse as spsp
 from scipy.sparse import linalg as spla
 from miscpy import sparsen as spn
 import matplotlib.pyplot as plt
-import os
-import json
-import ion1d as __ion1d
+import os, json, shutil, tempfile, tarfile
+import ion1d as _ion1d
 
 # Constants are in mks units
 const_e = 1.6021765658368782e-19    # Fundamental charge
@@ -1907,88 +1906,135 @@ saved and reloaded later.
             
             
         elif isinstance(source, str):
-            # Treat the source string as a path to a directory where the data
-            # may be found.
+            # Treat the source string as a path to tar archive
             # Force absolute paths
             source = os.path.abspath(source)
             # Verify that the source exists
-            if not os.path.isdir(source):
-                raise Exception('The source directory does not exist: ' + source)
+            if not os.path.isfile(source):
+                raise Exception('File not found: ' + source)
             elif verbose:
-                print('Found source directory: ' + source)
-            # Load the base dictionary
-            postfile = os.path.join(source, 'post.json')
-            # Load the json file with the raw data
-            try:
-                with open(postfile,'r') as ff:
-                    post = json.load(ff)
-                if verbose:
-                    print('Loaded post file: ' + postfile)
-            except:
-                raise Exception('Failed to parse the post json file: ' + postfile)
+                print('Loading archive: ' + source)
             
-            for key,value in param.items():
-                if key in self.__dict__:
-                    self.__dict__[key] = value
-                else:
-                    raise Exception('Unrecognized Ion1D attribute: {:s}'.format(key))
-                
-            # Convert the parameters to an IonParam object
-            self.param = IonParam(**self.param)
-            # Convert the model string to the model class object
-            if self.model in __ion1d.__dict__:
-                self.model = __ion1d.__dict__[self.model]
-            else:
-                print('LOAD_POST::WARNING: Did not find the model: ' + repr(post['model']))
-            
-            # Go get the numpy array files
-            for key,value in self.__dict__.items():
-                if isinstance(value,str) and value.endswith('.npy'):
-                    npfile = os.path.join(source,value)
-                    if os.path.isfile(npfile):
-                        if verbose:
-                            print('Loading numpy file: ' + npfile)
-                        try:
-                            self.__dict__[key] = np.load(npfile)
-                        except:
-                            raise Exception('Failed to load the numpy file: ' + npfile)
-                    elif verbose:
-                        print('File not found: ' + npfile)
-                        print('String entry does not appear to be a numpy file: post["%s"] = %s'%(key,value))
-            return post
+            # OK, let's go
+            with tempfile.TemporaryDirectory() as tempdir:
+                with tarfile.open(source, 'r') as arch_fd:
+                    if verbose:
+                        print('Expanding archive into: ' + tempdir)
+                    arch_fd.extractall(path=tempdir)
                     
+                if verbose:
+                    print('Loading member: post.json')
+                # Load the json file with the raw data
+                try:
+                    with open(os.path.join(tempdir, 'post.json'),'r') as ff:
+                        post = json.load(ff)
+                except:
+                    raise Exception('Failed to parse the post json file: ' + postfile)
+                    
+                for key,value in post.items():
+                    if isinstance(value,str):
+                        npyfile = os.path.join(tempdir,value)
+                        if os.path.isfile(npyfile):
+                            if verbose:
+                                print('Loading numpy array from: ' + value)
+                            post[key] = np.load(npyfile)
+                        
+                        self.__dict__[key] = value
+                    
+            # Read in the result to the Post object
+            self.__dict__.update(post)
+            # Finally, clean up some of the standard attribute types...
+            # Convert the parameters to an IonParam object if able
+            if isinstance(self.param, dict):
+                self.param = IonParam(**self.param)
+            else:
+                print('LOAD_POST::WARNING: Did not find a valid parameter dictionary')
+            # If the model name string appears in the ion1d module, use it.
+            if isinstance(self.model,str) and self.model in _ion1d.__dict__:
+                self.model = _ion1d.__dict__[self.model]
+            else:
+                print('LOAD_POST::WARNING: Did not find the model: ' + repr(self.model))
+            
 
 
-    def save(self, target, overwrite=False):
+    def save(self, target, overwrite=False, compression='bz2', verbose=False):
         """Save the PostIon1D object
     
 """
-        # Verify that the post processing data exist
-        if self.initstate < 4:
-            raise Exception('Post-processing data do not appear to be available. Run init_post() first.')
-        target = os.path.abspath(target)
-        # Check to see if the destination directory already exists
-        if os.path.isdir(target):
-            if overwrite:
-                os.system('rm -Rf ' + target)
-            else:
-                raise Exception('Directory already exists: ' + target)
-        # Create the directory
-        os.mkdir(target)
+        # Initialize the extension to append to the target file
+        extension = '.tar'
+        # Initialize the tar mode string
+        tarmode = 'w:'
         
-        # Make a duplicate of the post dict.  As we go, we will overwrite
-        # Numpy arrays with their file names
-        posttemp = self.__dict__.copy()
-        for key,value in posttemp.items():
-            if isinstance(value,np.ndarray):
-                npfile = key + '.npy'
-                np.save(os.path.join(target, npfile), value)
-                posttemp[key] = npfile
-            # If the attribute is uninitialized, don't save it
-            elif value is None:
-                del posttemp[key]
-            
-        # Write the post dictionary
-        postfile = os.path.join(target, 'post.json')
-        with open(postfile, 'w') as ff:
-            json.dump(posttemp, ff, skipkeys=True)
+        # Case out the compression mode, and assign the target file extension
+        # and the tar mode string.
+        if compression == 'none' or compression is None:
+            extension = '.tar'
+            tarmode = 'w:'
+        elif compression == 'gz':
+            extension = '.tar.gz'
+            tarmode = 'w:gz'
+        elif compression == 'bz2':
+            extension = '.tar.bz2'
+            tarmode = 'w:bz2'
+        else:
+            raise Exception('Unexpected value for the compression keyword: {:s}\n  Expected one of: {:s}'.format(\
+                    compression, repr(COMPRESSION_ALLOWED)))
+        
+        # Ok, that's taken care of.  Now, name some directories
+        # The target should have the proper extension and it should be a full
+        # path.  I don't like relative paths... they're so... relative.
+        # Yup, coding for LONG hours during a COVID-19 pandemic inspires some
+        # weird comments.
+        if not target.endswith(extension):
+            target += extension
+        target = os.path.abspath(target)
+
+        if verbose:
+            print('Writing to file: ' + target)
+
+        # Check to see if the destination directory already exists
+        if os.path.exists(target):
+            if overwrite:
+                if verbose:
+                    print('Overwriting existing file.')
+                os.remove(target)
+            else:
+                raise Exception('The target file already exists: ' + target)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            if verbose:
+                print('Staging files in directory: ' + tempdir)
+            # Make a duplicate of the post dict.  As we go, we will overwrite
+            # Numpy arrays with their file names
+            posttemp = self.__dict__.copy()
+
+            # Create the archive
+            with tarfile.open(target, 'w:' + compression) as arch_fd:
+                for key,value in posttemp.items():
+                    if isinstance(value,np.ndarray):
+                        npfile = key + '.npy'
+                        npfile_full = os.path.join(tempdir, npfile)
+                        np.save(npfile_full, value)
+                        arch_fd.add(npfile_full, arcname=npfile)
+                        posttemp[key] = npfile
+                        os.remove(npfile_full)
+                    # If the attribute is uninitialized, don't save it
+                    elif isinstance(value,IonParam):
+                        posttemp[key] = value.asdict()
+                    # Catch the model type (or others too... why not?)
+                    elif isinstance(value,type):
+                        posttemp[key] = value.__name__
+                    # Use a catch-all for other non-serializable entries
+                    elif not isinstance(value,(str,int,float)):
+                        posttemp[key] = repr(value)
+                    elif value is None:
+                        del posttemp[key]
+                    
+                # Write the post dictionary
+                postfile = 'post.json'
+                postfile_full = os.path.join(tempdir, postfile)
+                with open(postfile_full, 'w') as ff:
+                    json.dump(posttemp, ff, skipkeys=True)
+                arch_fd.add(postfile_full, arcname=postfile)
+                os.remove(postfile_full)
