@@ -939,258 +939,13 @@ if the solution is diverging"""
         # Pass... the solution has converged
         return True
         
-
-
     def init_post(self):
-        if self.initstate < 3:
-            raise Exception('The solution does not seem to have been calculated. Run init_solution() and step_solution() first.')
-        N = self.z.size
-        # Point to the parameters
-        p = self.param
+        """Spawn a PostIon1D instance for the solution results
+    P = M.init_post()
         
-        # Construct sparse matrices for calculating derivatives
-        D = spn.SparseN((N,N))
-        DD = spn.SparseN((N,N))
-        
-        # Initialize a solution matrix to perform the voltage perturbation
-        # anlaysis.
-        A = np.zeros((3*N,3*N))
-        C = np.zeros((3*N,))
-        
-        # First derivatives
-        eta_d = np.ndarray((N,))
-        nu_d = np.ndarray((N,))
-        phi_d = np.ndarray((N,))
-        # Second derivatives
-        eta_dd = np.ndarray((N,))
-        nu_dd = np.ndarray((N,))
-        phi_dd = np.ndarray((N,))
-        # Voltage perturbation results
-        eta_1 = np.ndarray((N,))
-        nu_1 = np.ndarray((N,))
-        phi_1 = np.ndarray((N,))
-        
-        # Move on to the internal nodes
-        for k in range(1,N-1):
-            # Calculate the interpolation function derivatives
-            dz10 = self.z[k] - self.z[k-1]
-            dz21 = self.z[k+1] - self.z[k]
-            dz20 = dz10 + dz21
-            
-            ap = - dz21 / (dz10 * dz20)
-            bp = (dz21 - dz10)/(dz10 * dz21)
-            cp = dz10 / (dz20 * dz21)
-            
-            app = 2 / (dz10 * dz20)
-            bpp = -2 / (dz10 * dz21)
-            cpp = 2 / (dz20 * dz21)
-            
-            # Calculate eta_d, nu_d, and phi_d
-            e_d = ap*self.eta[k-1] + bp*self.eta[k] + cp*self.eta[k+1]
-            n_d = ap*self.nu[k-1] + bp*self.nu[k] + cp*self.nu[k+1]
-            p_d = ap*self.phi[k-1] + bp*self.phi[k] + cp*self.phi[k+1]
-            # Calculate eta_dd, nu_dd, and phi_dd
-            e_dd = app*self.eta[k-1] + bpp*self.eta[k] + cpp*self.eta[k+1]
-            n_dd = app*self.nu[k-1] + bpp*self.nu[k] + cpp*self.nu[k+1]
-            p_dd = app*self.phi[k-1] + bpp*self.phi[k] + cpp*self.phi[k+1]
-            
-            eta_d[k] = e_d
-            nu_d[k] = n_d
-            phi_d[k] = p_d
-            
-            eta_dd[k] = e_dd
-            nu_dd[k] = n_dd
-            phi_dd[k] = p_dd
-            
-            # For convenience, point to eta[k], nu[k] and phi[k]
-            e_ = self.eta[k]
-            n_ = self.nu[k]
-            p_ = self.phi[k]
-            
-            eta_k = k
-            nu_k = eta_k + N
-            phi_k = nu_k + N
-
-            # Calculate a couple of intermediate parameters
-            Re = p.R / (p.mu * p.tau)   # Electric R
-            aa = p.alpha * p.alpha      # alpha squared
-            
-            # Calculate the solution matrix for the perturbation analysis
-            A[eta_k, eta_k-1] = app/p.R - ap + p.tau/p.R*(ap*p_d)
-            A[eta_k, eta_k] = bpp/p.R - bp + p.tau/p.R*(bp*p_d + p_dd) - p.beta*n_
-            A[eta_k, eta_k+1] = cpp/p.R - cp + p.tau/p.R*(cp*p_d)
-            A[eta_k, nu_k] = -p.beta*e_
-            A[eta_k, phi_k-1] = p.tau/p.R*(ap*e_d + app*e_)
-            A[eta_k, phi_k] = p.tau/p.R*(bp*e_d + bpp*e_)
-            A[eta_k, phi_k+1] = p.tau/p.R*(cp*e_d + cpp*e_)
-
-            A[nu_k, nu_k-1] = app/Re - ap - (ap*p_d)/Re
-            A[nu_k, nu_k] = bpp/Re - bp - (bp*p_d + p_dd)/Re - p.beta*e_
-            A[nu_k, nu_k+1] = cpp/Re - cp - (cp*p_d)/Re
-            A[nu_k, eta_k] = -p.beta*n_
-            A[nu_k, phi_k-1] = -(ap*n_d + app*n_)/Re
-            A[nu_k, phi_k] = -(bp*n_d + bpp*n_)/Re
-            A[nu_k, phi_k+1] = -(cp*n_d + cpp*n_)/Re
-
-            A[phi_k, phi_k-1] = aa*app
-            A[phi_k, phi_k] = aa*bpp
-            A[phi_k, phi_k+1] = aa*cpp
-            A[phi_k, eta_k] = 1
-            A[phi_k, nu_k] = -1
-            
-        # Deal with the end-points
-        # Start at the boundary node z=0
-        dz10 = self.z[1] - self.z[0]
-        dz21 = self.z[2] - self.z[1]
-        dz20 = dz21 + dz10
-        # Use only the two boundary nodes to construct the derivative
-        ap = -(dz10 + dz20)/(dz20 * dz10)
-        bp = dz20/(dz10*dz21)
-        cp = -dz10/(dz20*dz21)
-
-        app = 2 / (dz10 * dz20)
-        bpp = -2 / (dz10 * dz21)
-        cpp = 2 / (dz20 * dz21)
-        
-        eta_d[0] = ap*self.eta[0] + bp*self.eta[1] + cp*self.eta[2]
-        nu_d[0] = ap*self.nu[0] + bp*self.nu[1] + cp*self.nu[2]
-        phi_d[0] = ap*self.phi[0] + bp*self.phi[1] + cp*self.phi[2]
-        
-        eta_dd[0] = app*self.eta[0] + bpp*self.eta[1] + cpp*self.eta[2]
-        nu_dd[0] = app*self.nu[0] + bpp*self.nu[1] + cpp*self.nu[2]
-        phi_dd[0] = app*self.phi[0] + bpp*self.phi[1] + cpp*self.phi[2]
-
-        A[0,0] = 1
-        A[N,N] = 1
-        A[2*N,2*N] = 1
-        C[2*N] = 1
-
-        # Finish at the boundary node z=1
-        dz10 = self.z[-2] - self.z[-3]
-        dz21 = self.z[-1] - self.z[-2]
-        dz20 = dz21 + dz10
-        ap = dz21/(dz20*dz10)
-        bp = -dz20/(dz10*dz21)
-        cp = (dz20 + dz21)/(dz20*dz21)
-
-        # Reach in one extra node to construct the second derivative
-        app = 2 / (dz10 * dz20)
-        bpp = -2 / (dz10 * dz21)
-        cpp = 2 / (dz20 * dz21)
-
-        eta_d[-1] = ap*self.eta[-3] + bp*self.eta[-2] + cp*self.eta[-1]
-        nu_d[-1] = ap*self.nu[-3] + bp*self.nu[-2] + cp*self.nu[-1]
-        phi_d[-1] = ap*self.phi[-3] + bp*self.phi[-2] + cp*self.phi[-1]
-        
-        eta_dd[-1] = app*self.eta[-3] + bpp*self.eta[-2] + cpp*self.eta[-1]
-        nu_dd[-1] = app*self.nu[-3] + bpp*self.nu[-2] + cpp*self.nu[-1]
-        phi_dd[-1] = app*self.phi[-3] + bpp*self.phi[-2] + cpp*self.phi[-1]
-        
-        A[N-1,N-1] = 1
-        A[2*N-1, 2*N-1] = 1
-        A[3*N-1, 3*N-1] = 1
-        
-        X1 = np.linalg.solve(A,C)
-        eta_1 = X1[:N]
-        nu_1 = X1[N:2*N]
-        phi_1 = X1[2*N:]
-        
-        self.post.update({
-            'version':__version__,
-            'model':self.__class__.__name__,
-            'param':self.param.asdict(),
-            'z':self.z,
-            'etaE':self.etaE,
-            'eta':self.eta,
-            'eta.d':eta_d,
-            'eta.dd':eta_dd,
-            'eta.1':eta_1,
-            'F.i.c':self.eta,
-            'F.i.d':-(1./p.R) * eta_d,
-            'F.i.e': -(p.tau/p.R) * self.eta * phi_d,
-            'nuE':self.nuE,
-            'nu':self.nu,
-            'nu.d':nu_d,
-            'nu.dd':nu_dd,
-            'nu.1':nu_1,
-            'F.e.c':self.nu,
-            'F.e.d':-(p.mu/p.R) * nu_d,
-            'F.e.e':(p.mu/p.R) * self.nu * phi_d,
-            'phiE':self.phiE,
-            'phi':self.phi,
-            'phi.d':phi_d,
-            'phi.dd':phi_dd,
-            'phi.1':phi_1,
-            'rec':p.beta * self.eta*self.nu,
-            'charge':self.eta - self.nu,
-            'efield':-phi_d,
-            'A':A,
-            'C':C
-        })
-        # Calculate ion fluxes
-        self.post['F.i'] = self.post['F.i.e'] + self.post['F.i.c'] + self.post['F.i.d']
-        self.post['F.e'] = self.post['F.e.e'] + self.post['F.e.c'] + self.post['F.e.d']
-        # Calculate currents to/from the torch
-        self.post['J.i'] = self.post['F.i'][0]
-        self.post['J.e'] = -self.post['F.e'][0]
-        self.post['J'] = self.post['J.i'] + self.post['J.e']
-        # Calculate first perturbation currents
-        # Time to re-visit the derivative at the tip
-        dz10 = self.z[1] - self.z[0]
-        dz21 = self.z[2] - self.z[1]
-        dz20 = dz21 + dz10
-        ap = -(dz10 + dz20)/(dz20 * dz10)
-        bp = dz20/(dz10*dz21)
-        cp = -dz10/(dz20*dz21)
-        eta_1d = ap*eta_1[0] + bp*eta_1[1] + cp*eta_1[2]
-        nu_1d = ap*nu_1[0] + bp*nu_1[1] + cp*nu_1[2]
-        phi_1d = ap*phi_1[0] + bp*phi_1[1] + cp*phi_1[2]
-        # Go
-        self.post['J.i.1'] = -eta_1d/p.R + eta_1[0] - p.tau/p.R * (eta_1[0]*phi_d[0] + self.eta[0]*phi_1d)
-        self.post['J.e.1'] = nu_1d/Re - nu_1[0] - 1./Re * (nu_1[0]*phi_d[0] + self.nu[0]*phi_1d)
-        self.post['J.1'] = self.post['J.i.1'] + self.post['J.e.1']
-        
-        self.initstate = 4
-        
-    def save_post(self, dest, overwrite=False):
-        """Save the post dictionary contents
-    M.save_post('/path/to/destination/directory')
-    
-Create a new directory, and save the post processing results there.  The post 
-member dicitonary is stored in JSON format in a file, 'post.json' inside that 
-directory.  Entries that are Numpy arrays will be assigned a string path to a 
-*.npy file containing the array's definition.  The file name will be 
-constructed by appending item's dictionary key with '.npy'.
-
-Optional keywords are:
-    overwrite   (default:False) If the directory already exists, save anyway?
+Is equivalent to P = PostIon1D(M)
 """
-        # Verify that the post processing data exist
-        if self.initstate < 4:
-            raise Exception('Post-processing data do not appear to be available. Run init_post() first.')
-        dest = os.path.abspath(dest)
-        # Check to see if the destination directory already exists
-        if os.path.isdir(dest):
-            if overwrite:
-                os.system('rm -Rf ' + dest)
-            else:
-                raise Exception('Directory already exists: ' + dest)
-        # Create the directory
-        os.mkdir(dest)
-        
-        # Make a duplicate of the post dict.  As we go, we will overwrite
-        # Numpy arrays with their file names
-        posttemp = self.post.copy()
-        for key,value in posttemp.items():
-            if isinstance(value,np.ndarray):
-                npfile = key + '.npy'
-                np.save(os.path.join(dest, npfile), value)
-                posttemp[key] = npfile
-        
-        # Write the post dictionary
-        postfile = os.path.join(dest, 'post.json')
-        with open(postfile, 'w') as ff:
-            json.dump(posttemp, ff, skipkeys=True)
+        return PostIon1D(self)
         
         
 class FiniteIon1D(Ion1D):
@@ -1877,10 +1632,42 @@ or they can be loaded from the results saved earlier.
 
     M = PostIon1D( ExistingIon1DObject )
         OR
-    M = PostIon1D( '/path/to/data/directory/' )
+    M = PostIon1D( '/path/to/data/archive.tar' )
     
 The intention is that attributes be added freely to the object so they can be
 saved and reloaded later.
+
+** FORMAT **
+All of the PostIon1D object attributes that can be serialized in a json format
+are written explicitly to the "post.json" file in the root of the output 
+tarball.  The file forms a dictionary whose members are interpreted as the
+attributes of the PostIon1D instance being constructed.
+
+If a dictionary member has a string value that is found to be the name of a 
+tarball member file, that file is treated as a numpy ndarray .npy file.  The
+string value is replaced with the numpy array and loaded into PostIon1D 
+instance.
+
+There is also a special "model" attribute, which is the class that was 
+originally used to initialize the PostIon1D instance.  When it is saved, it was
+converted into the class's __name__ string.  After loading is complete, the 
+value in the model member is used to search the ion1d module.  If a member's 
+name matches the string the string is overwritten with that object.  The intent
+is that the string will match the name of an Ion1D subclass, and that the
+model member will be set to that subclass.
+
+The "param" attribute should have been saved as a dictionary of numeric 
+parameters used to construct the model.  After being loaded, that dictionary
+is converted into an IonParam object using the IonParam.__init__() method.
+
+All other values with type str, int, float, list, tuple, or dict are loaded 
+verbatim as attributes of the PostIon1D instance.
+
+** WARNING **
+There is no protection against overwriting the methods of a PostIon1D instance.
+For example, a badly constructed post.json file might have an entry 
+'save':'FOOLED YOU!' that would overwrite the save() method with a string that 
+emphasizes the nature of the problem.
 """
     def __init__(self, source, verbose=False):
         # If initializing from another model
@@ -1959,7 +1746,40 @@ saved and reloaded later.
 
     def save(self, target, overwrite=False, compression='bz2', verbose=False):
         """Save the PostIon1D object
-    
+    M.save(filename)
+
+The save() method creates a tarball archive that can be used to reconstitute
+the PostIon1D object later.  The compression keyword parameter is a string that
+allows the user to opt for different compression algorithms.  Valid strings are
+listed below.
+
+Nominally, the filename should be a path to a file with no appended extension.  
+The save() method will append the correct extension if it is not found.  The
+extension is based on the compression method.
+
+compression extension   method
+'none'      .tar        none-tarball only
+'bz2'       .tar.bz2    bzip2 compression
+'gz'        .tar.gz     gzip compression
+
+** FORMAT **
+All of the PostIon1D object attributes that can be serialized in a json format
+are written explicitly to the "post.json" file in the root of the output 
+tarball.  Numpy arrays are saved as separate files in the tarball named by their
+attribute name with the .npy extension appended, then the array is replaced by
+its filename in the json file.  For example, in "post.json" struct, the 'z'
+attribute would appear ... "z":"z.npy" ... and there would be a file named z.npy
+in the root of the tarball.
+
+There is also a special "model" attribute, which is the class that was 
+originally used to initialize the PostIon1D instance.  When it is saved, it is
+converted into the class's __name__ string.
+
+The "param" attribute, which is an instance of IonParam, is converted to a dict
+using the object's asdict() method, and stored in the json file.
+
+Finally, any other attributes that are not str, int, float, dict, list or numpy
+ndarrays are replaced with the output of repr().  
 """
         # Initialize the extension to append to the target file
         extension = '.tar'
@@ -2026,7 +1846,7 @@ saved and reloaded later.
                     elif isinstance(value,type):
                         posttemp[key] = value.__name__
                     # Use a catch-all for other non-serializable entries
-                    elif not isinstance(value,(str,int,float)):
+                    elif not isinstance(value,(str,int,float,dict,list,tuple)):
                         posttemp[key] = repr(value)
                     elif value is None:
                         del posttemp[key]
@@ -2038,3 +1858,151 @@ saved and reloaded later.
                     json.dump(posttemp, ff, skipkeys=True)
                 arch_fd.add(postfile_full, arcname=postfile)
                 os.remove(postfile_full)
+
+
+
+    def expand_post(self):
+
+        N = self.z.size
+        # Point to the parameters
+        p = self.param
+            
+        # Calculate a couple of intermediate parameters
+        Re = p.R / (p.mu * p.tau)   # Electric R
+        aa = p.alpha * p.alpha      # alpha squared
+        
+        # Initialize a solution matrix to perform the voltage perturbation
+        # anlaysis.
+        A = np.zeros((3*N,3*N))
+        C = np.zeros((3*N,))
+        
+        # First derivatives
+        self.d1eta = np.ndarray((N,))
+        self.d1nu = np.ndarray((N,))
+        self.d1phi = np.ndarray((N,))
+        # Second derivatives
+        self.d2eta = np.ndarray((N,))
+        self.d2nu = np.ndarray((N,))
+        self.d2phi = np.ndarray((N,))
+        
+        # Move on to the internal nodes
+        for k in range(1,N-1):
+            # Calculate the interpolation function derivatives
+            dz10 = self.z[k] - self.z[k-1]
+            dz21 = self.z[k+1] - self.z[k]
+            dz20 = dz10 + dz21
+            
+            ap = - dz21 / (dz10 * dz20)
+            bp = (dz21 - dz10)/(dz10 * dz21)
+            cp = dz10 / (dz20 * dz21)
+            
+            app = 2 / (dz10 * dz20)
+            bpp = -2 / (dz10 * dz21)
+            cpp = 2 / (dz20 * dz21)
+            
+            # Calculate eta_d, nu_d, and phi_d
+            e_d = ap*self.eta[k-1] + bp*self.eta[k] + cp*self.eta[k+1]
+            n_d = ap*self.nu[k-1] + bp*self.nu[k] + cp*self.nu[k+1]
+            p_d = ap*self.phi[k-1] + bp*self.phi[k] + cp*self.phi[k+1]
+            # Calculate eta_dd, nu_dd, and phi_dd
+            e_dd = app*self.eta[k-1] + bpp*self.eta[k] + cpp*self.eta[k+1]
+            n_dd = app*self.nu[k-1] + bpp*self.nu[k] + cpp*self.nu[k+1]
+            p_dd = app*self.phi[k-1] + bpp*self.phi[k] + cpp*self.phi[k+1]
+            
+            self.d1eta[k] = e_d
+            self.d1nu[k] = n_d
+            self.d1phi[k] = p_d
+            
+            self.d2eta[k] = e_dd
+            self.d2nu[k] = n_dd
+            self.d2phi[k] = p_dd
+            
+            # For convenience, point to eta[k], nu[k] and phi[k]
+            e_ = self.eta[k]
+            n_ = self.nu[k]
+            p_ = self.phi[k]
+            
+            eta_k = k
+            nu_k = eta_k + N
+            phi_k = nu_k + N
+            
+            # Calculate the solution matrix for the perturbation analysis
+            A[eta_k, eta_k-1] = app/p.R - ap + p.tau/p.R*(ap*p_d)
+            A[eta_k, eta_k] = bpp/p.R - bp + p.tau/p.R*(bp*p_d + p_dd) - p.beta*n_
+            A[eta_k, eta_k+1] = cpp/p.R - cp + p.tau/p.R*(cp*p_d)
+            A[eta_k, nu_k] = -p.beta*e_
+            A[eta_k, phi_k-1] = p.tau/p.R*(ap*e_d + app*e_)
+            A[eta_k, phi_k] = p.tau/p.R*(bp*e_d + bpp*e_)
+            A[eta_k, phi_k+1] = p.tau/p.R*(cp*e_d + cpp*e_)
+
+            A[nu_k, nu_k-1] = app/Re - ap - (ap*p_d)/Re
+            A[nu_k, nu_k] = bpp/Re - bp - (bp*p_d + p_dd)/Re - p.beta*e_
+            A[nu_k, nu_k+1] = cpp/Re - cp - (cp*p_d)/Re
+            A[nu_k, eta_k] = -p.beta*n_
+            A[nu_k, phi_k-1] = -(ap*n_d + app*n_)/Re
+            A[nu_k, phi_k] = -(bp*n_d + bpp*n_)/Re
+            A[nu_k, phi_k+1] = -(cp*n_d + cpp*n_)/Re
+
+            A[phi_k, phi_k-1] = aa*app
+            A[phi_k, phi_k] = aa*bpp
+            A[phi_k, phi_k+1] = aa*cpp
+            A[phi_k, eta_k] = 1
+            A[phi_k, nu_k] = -1
+            
+        # Deal with the end-points
+        # Start at the boundary node z=0
+        dz10 = self.z[1] - self.z[0]
+        dz21 = self.z[2] - self.z[1]
+        dz20 = dz21 + dz10
+        # Use only the two boundary nodes to construct the derivative
+        ap = -(dz10 + dz20)/(dz20 * dz10)
+        bp = dz20/(dz10*dz21)
+        cp = -dz10/(dz20*dz21)
+
+        app = 2 / (dz10 * dz20)
+        bpp = -2 / (dz10 * dz21)
+        cpp = 2 / (dz20 * dz21)
+        
+        self.d1eta[0] = ap*self.eta[0] + bp*self.eta[1] + cp*self.eta[2]
+        self.d1nu[0] = ap*self.nu[0] + bp*self.nu[1] + cp*self.nu[2]
+        self.d1phi[0] = ap*self.phi[0] + bp*self.phi[1] + cp*self.phi[2]
+        
+        self.d2eta[0] = app*self.eta[0] + bpp*self.eta[1] + cpp*self.eta[2]
+        self.d2nu[0] = app*self.nu[0] + bpp*self.nu[1] + cpp*self.nu[2]
+        self.d2phi[0] = app*self.phi[0] + bpp*self.phi[1] + cpp*self.phi[2]
+
+        A[0,0] = 1
+        A[N,N] = 1
+        A[2*N,2*N] = 1
+        C[2*N] = 1
+
+        # Finish at the boundary node z=1
+        dz10 = self.z[-2] - self.z[-3]
+        dz21 = self.z[-1] - self.z[-2]
+        dz20 = dz21 + dz10
+        ap = dz21/(dz20*dz10)
+        bp = -dz20/(dz10*dz21)
+        cp = (dz20 + dz21)/(dz20*dz21)
+
+        # Reach in one extra node to construct the second derivative
+        app = 2 / (dz10 * dz20)
+        bpp = -2 / (dz10 * dz21)
+        cpp = 2 / (dz20 * dz21)
+
+        self.d1eta[-1] = ap*self.eta[-3] + bp*self.eta[-2] + cp*self.eta[-1]
+        self.d1nu[-1] = ap*self.nu[-3] + bp*self.nu[-2] + cp*self.nu[-1]
+        self.d1phi[-1] = ap*self.phi[-3] + bp*self.phi[-2] + cp*self.phi[-1]
+        
+        self.d2eta[-1] = app*self.eta[-3] + bpp*self.eta[-2] + cpp*self.eta[-1]
+        self.d2nu[-1] = app*self.nu[-3] + bpp*self.nu[-2] + cpp*self.nu[-1]
+        self.d2phi[-1] = app*self.phi[-3] + bpp*self.phi[-2] + cpp*self.phi[-1]
+        
+        A[N-1,N-1] = 1
+        A[2*N-1, 2*N-1] = 1
+        A[3*N-1, 3*N-1] = 1
+        
+        X1 = np.linalg.solve(A,C)
+        self.eta1 = X1[:N]
+        self.nu1 = X1[N:2*N]
+        self.phi1 = X1[2*N:]
+        
