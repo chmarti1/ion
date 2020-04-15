@@ -23,8 +23,7 @@ M.init_solution()
 for count in range(50):
     M.show_solution()
     if M.test_solution():
-        M.init_post()
-        M.save_post(baseline)
+        M.init_post().save(baseline)
         exit(0)
     M.step_solution()
 

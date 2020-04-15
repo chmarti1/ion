@@ -40,10 +40,11 @@ def worker(worker_ipm):
         # If this is the first model run pull from the baseline
         if firstrun:
             firstrun = False
-            eta = np.load(os.path.join(baseline,'eta.npy'))
-            nu = np.load(os.path.join(baseline,'nu.npy'))
-            phi = np.load(os.path.join(baseline,'phi.npy'))
-            z = np.load(os.path.join(baseline, 'z.npy'))
+            P = ion1d.PostIon1D(baseline)
+            eta = P.eta
+            nu = P.nu
+            phi = P.phi
+            z = P.z
                 
         # Otherwise, use the last model run to initialize the next.
         else:
@@ -69,8 +70,7 @@ def worker(worker_ipm):
 
         if not converge:
             print('*** CONVERGENCE FAILURE: ' + saveas)
-        M.init_post()
-        M.save_post(saveas)
+        M.init_post().save(saveas)
 
 
 
@@ -78,9 +78,9 @@ if __name__ == '__main__':
     print('Starting the calculations')
     
     # Steal parameters from baseline
-    blp = ion1d.load_post(baseline, loadnpy=False, loadparam=False)
+    P = ion1d.PostIon1D(baseline)
     # Modify phia to be an array of applied voltages
-    p = blp['param']
+    p = P.param.asdict()
     p['phia'] = np.arange(phimin, phimax, phistep)
     # Generate a parameter manager for these cases
     ipm = ion1d.IonParamManager(p)

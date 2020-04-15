@@ -1,0 +1,2 @@
+# miscpy init
+provides = ['sparsen']

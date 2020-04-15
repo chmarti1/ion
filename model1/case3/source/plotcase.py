@@ -2,7 +2,7 @@
 
 import ion1d
 import matplotlib.pyplot as plt
-import os
+import os, time
 
 datadir = '../data'
 exportdir = '../export'
@@ -23,21 +23,29 @@ fig = plt.figure(1)
 
 with open(sumfile, 'w') as sfd:
     firstentry = True
+    sfd.write('Created: ' + time.asctime() + '\n')
+    sfd.write('Ion1D version: ' + ion1d.__version__ + '\n')
     for source in contents:
         print(source)
-        p = ion1d.load_post(os.path.join(datadir,source), verbose=False, loadmodel=False)
+        target = os.path.join(datadir,source)
+        p = ion1d.PostIon1D(target)
+        p.expand_post()
+        p.save(target, overwrite=True)
 
-        param = p['param']
+        # Strip the extension off of the source
+        source = source.split('.')[0]
+
+        param = p.param
 
         if firstentry:
             sfd.write('SOURCE MODEL                ' + param.get_header() + '\n')
             firstentry = False
-        sfd.write('{:6s} {:20s} '.format(source, p['model']) + param.get_entry() + '\n')
+        sfd.write('{:6s} {:20s} '.format(source, p.model.__name__) + param.get_entry() + '\n')
 
         fig.clf()
         ax = fig.add_subplot(111)
-        ax.plot(p['z'], p['eta'], 'k', label='$\eta$ (H$_3$O$^+$)')
-        ax.plot(p['z'], p['nu'], 'k--', label='$\\nu$ (e$^-$)')
+        ax.plot(p.z, p.eta, 'k', label='$\eta$ (H$_3$O$^+$)')
+        ax.plot(p.z, p.nu, 'k--', label='$\\nu$ (e$^-$)')
         ax.set_xlabel('z')
         ax.legend(loc=0)
         ax.grid(True)
@@ -48,15 +56,6 @@ with open(sumfile, 'w') as sfd:
         
         fig.savefig(os.path.join(exportdir, source+'_wsheath.png'))
         
-        fig.clf()
-        ax = fig.add_subplot(111)
-        ax.plot(p['z'], p['eta'], 'k', label='$\eta$ (H$_3$O$^+$)')
-        ax.plot(p['z'], p['nu'], 'k--', label='$\\nu$ (e$^-$)')
-        ax.set_xlabel('z')
-        ax.legend(loc=0)
-        ax.grid(True)
-        fig.savefig(os.path.join(exportdir,source+'.png'))
-        
         ax.set_xlim([0, .05])
         ax.set_ylim([0., 0.25])
         
@@ -64,7 +63,7 @@ with open(sumfile, 'w') as sfd:
         
         fig.clf()
         ax = fig.add_subplot(111)
-        ax.plot(p['z'], p['charge'], 'k')
+        ax.plot(p.z, p.eta-p.nu, 'k')
         ax.set_xlabel('z')
         ax.set_ylabel('charge')
         ax.grid(True)
@@ -72,7 +71,7 @@ with open(sumfile, 'w') as sfd:
         
         fig.clf()
         ax = fig.add_subplot(111)
-        ax.plot(p['z'], p['phi'], 'k', label='$\phi$ (V)')
+        ax.plot(p.z, p.phi, 'k', label='$\phi$ (V)')
         #ax.plot(p['z'], p['efield'], 'k--', label='-d$\phi$/dz$ (E)')
         ax.set_xlabel('z')
         ax.grid(True)
@@ -81,23 +80,23 @@ with open(sumfile, 'w') as sfd:
         
         fig.clf()
         ax = fig.add_subplot(111)
-        ax.plot(p['z'], p['eta.1'], 'k', label='$\eta_1$ (H$_3$O$^+$)')
-        ax.plot(p['z'], p['nu.1'], 'k--', label='$\nu_1$ (e$^-$)')
+        ax.plot(p.z, p.eta1, 'k', label='$\eta_1$ (H$_3$O$^+$)')
+        ax.plot(p.z, p.nu1, 'k--', label='$\nu_1$ (e$^-$)')
         ax.set_xlabel('z')
         ax.grid(True)
         fig.savefig(os.path.join(exportdir, source+'_1.png'))
         
         fig.clf()
         ax = fig.add_subplot(111)
-        ax.plot(p['z'], p['phi.1'], 'k', label='$\phi_1$ (V)')
+        ax.plot(p.z, p.phi1, 'k', label='$\phi_1$ (V)')
         #ax.plot(p['z'], p['efield'], 'k--', label='-d$\phi$/dz$ (E)')
         ax.set_xlabel('z')
         ax.grid(True)
         fig.savefig(os.path.join(exportdir, source+'_phi1.png'))
         
         phia.append(param.phia)
-        J.append(p['J'])
-        J1.append(p['J.1'])
+        J.append(p.J)
+        J1.append(p.J1)
 
 fig.clf()
 ax = fig.add_subplot(111)
