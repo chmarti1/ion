@@ -40,26 +40,62 @@ if False:
         ax2.plot(p.z,p.phi,'k:')
         ax2.plot(p.z[::downsample], p.phi[::downsample], **mkr)
         fmt.append([mkr, '${{\phi}}_a$={:.2f}'.format(p.param.phia)])
+        
+        # # Asymptotic bulk solution
+        # eta_infty = np.sqrt(p.param.omega/p.param.beta)
+        # z = np.linspace(p.param.z1, p.param.z2,11)
+        # eta = eta_infty * (1 - 2/(1 + np.exp(2*eta_infty*p.param.beta*(z-p.param.z1))))
+        # ax1.plot(z,eta,'k:')
+        # eta2 = eta_infty * (1 - 2/(1 + np.exp(2*eta_infty*p.param.beta*(p.param.z2-p.param.z1))))
+        # z = np.linspace(p.param.z2, 1,21)
+        # eta = eta2 / ( 1 + p.param.beta*eta2* (z-p.param.z2))
+        # ax1.plot(z,eta,'k:')
+
+        # Add asymptotic solutions
+        if p.param.phia < -10:
+            phip = 1.
+            etas = np.sqrt(p.param.R * p.param.alpha**2 * p.param.omega / p.param.tau)
+            k1 = np.asscalar(np.where(p.z == p.param.z1)[0])
+            phi1 = p.phi[k1]
+            Kz = (4*p.param.alpha**2 * p.param.tau / p.param.R / p.param.omega)**.25
+            zs = p.param.z1 + Kz*(phip-phi1)**.5
+            z0 = (zs + p.param.z1)*.5 - 0.5*p.param.alpha**2*p.param.R/p.param.tau/etas
+            
+            z = np.linspace(0,p.param.z1,11)
+            ax1.plot(z, etas * (z0-p.param.z1)**.5 / (z0-z)**.5, 'k:')
+            ax1.plot([p.param.z1, zs], [etas, etas], 'k:')
+
 
     ax1.set_xlim([0,1])
     ax2.set_xlim([0,1])
     ax2.set_ylim([-50,50])
 
+    ax3 = lplot.floating_legend(ax1.figure, loc=(.23,.35), loc_edge='lt', fmt=fmt, vpadding_inches=.1, markerw_inches=.3, width_inches=2)
+
     ax1.figure.savefig(os.path.join(exportdir, 'case2.png'))
     # Remove the phi axes and zoom in on the sheaths
     ax2.remove()
 
-    ax2 = lplot.floating_legend(ax1.figure, loc=(.5,.5), loc_edge='lt', fmt=fmt, vpadding_inches=.1, markerw_inches=.3)
+    pos = ax3.get_position()
+    h,w = pos.height,pos.width
+    pos.x0,pos.y0 = .2,.6
+    pos.x1,pos.y1 = pos.x0+w,pos.y0 + h
+    ax3.set_position(pos)
+
     ax1.set_xlim([0,.06])
     ax1.set_ylim([0,.15])
+        
     ax1.figure.savefig(os.path.join(exportdir, 'tsheath.png'))
-    p = ax2.get_position()
-    h = p.height
-    p.y0 = .7
-    p.y1 = p.y0 + h
-    ax2.set_position(p)
+    
+    pos = ax3.get_position()
+    h,w = pos.height,pos.width
+    pos.x0,pos.y0 = .5,.65
+    pos.x1,pos.y1 = pos.x0+w,pos.y0 + h
+    ax3.set_position(pos)
+    
     ax1.set_xlim([.9,1])
     ax1.set_ylim([0,.1])
+    
     ax1.figure.savefig(os.path.join(exportdir, 'wsheath.png'))
 
     plt.close('all')
@@ -70,6 +106,7 @@ if True:
     ax1 = lplot.init_fig('${\phi}_a$', '$J$', label_size=16)
     ax2 = lplot.init_fig('${\phi}_a$', '${J_1}$', label_size=16)
     ax3 = lplot.init_fig('${\phi}_a$', '$J$', label_size=16)
+    ax4 = lplot.init_xxyy(
 
     downselect = 4
 
@@ -86,8 +123,11 @@ if True:
         J1 = []
         Fi = []
         Fe = []
+        phi1 = []
         for source in os.listdir(datadir):
             p = ion1d.PostIon1D(os.path.join(datadir,source))
+            k1 = np.asscalar(np.nonzero(p.z==p.param.z1)[0])
+            phi1.append(p.phi[k1])
             phia.append(p.param.phia)
             J.append(p.J)
             J1.append(p.J1)
@@ -95,6 +135,7 @@ if True:
             Fe.append(p.Fe[1])
         
         phia = np.asarray(phia)
+        phi1 = np.asarray(phi1)
         J = np.asarray(J)
         J1 = np.asarray(J1)
         Fi = np.asarray(Fi)
@@ -102,36 +143,59 @@ if True:
         
         ii = np.argsort(phia)
         phia = phia[ii]
+        phi1 = phi1[ii]
         J = J[ii]
         J1 = J1[ii]
         Fi = Fi[ii]
         Fe = Fe[ii]
         
-        phia_asym = np.arange(-50,-10,1)
-        J1_asym = (p.param.alpha**2 * p.param.tau * p.param.omega**3 / p.param.R)**.25 / np.sqrt(2)
-        J1_asym *= 1/np.sqrt(-phia_asym)
-        ax2.plot(phia_asym, J1_asym, 'k--')
+        # Calculate some parameters for the asymptotic solution
+        aa = p.param.alpha**2
+        R=p.param.R; z1=p.param.z1; tau=p.param.tau
+        etas = np.sqrt(aa * p.param.R * p.param.omega/p.param.tau)
+        Kz = np.sqrt(2*aa/etas)
+        phip = 1.
         
         if p.model is ion1d.FiniteIon1D:
+            # Asymptotic solution
+            #phi1 = phia[ii] + p.param.R*p.param.z1/p.param.tau
+            phi1_asym = np.arange(-35.,-10.,2.)
+            z01 = 0.5*Kz*np.sqrt(phip-phi1_asym) - aa*R/(2*p.param.tau*etas)
+            z0 = z1 + z01
+            #phia_asym = phi1_asym - R*z1/tau
+            phia_asym = -R*z1/tau + 1.25*etas/aa * (z01**2 - z0**1.5*z01**.5) + phi1_asym
+            J_asym = etas - p.param.omega*Kz*(phip-phi1_asym)**.5
+
             mkr.update({'mfc':'k'})
             ax1.plot(phia, J, 'k-')
             ax1.plot(phia[::downselect], J[::downselect], **mkr)
             ax2.plot(phia, J1, 'k-')
             ax2.plot(phia[::downselect], J1[::downselect], **mkr)
+            ax1.plot(phia_asym, J_asym, 'k:')
             
             ax3.plot(phia, Fi, 'k-')
             ax3.plot(phia[::downselect], Fi[::downselect], **mkr)
             ax3.plot(phia, -Fe, 'k--')
             ax3.plot(phia[::downselect], -Fe[::downselect], **mkr)
             
+            ax4.plot(phia, phi1, 'k-')
+            ax4.plot(phia_asym, phi1_asym, 'k:')
+            
             mkr.update({'ls':'-', 'color':'k'})
             fmt.append([mkr, 'Lifted {:.2f} $L_f$={:.1f} $R$={:.0f}'.format(p.param.z1, p.param.z2-p.param.z1, p.param.R)])
+            
 
         else:
+            phia_asym = np.arange(-50.,-10.,2.)
+            J_asym = etas - p.param.omega*Kz*(phip-phia_asym)**.5
+            J1_asym = 0.5*p.param.omega*Kz*(phip-phia_asym)**-.5
+            
             ax1.plot(phia, J, 'k-')
             ax1.plot(phia[::downselect], J[::downselect], **mkr)
             ax2.plot(phia, J1, 'k-')
             ax2.plot(phia[::downselect], J1[::downselect], **mkr)
+            ax1.plot(phia_asym, J_asym, 'k:')
+            #ax2.plot(phia_asym, J1_asym, 'k:')
                         
             ax3.plot(phia, Fi, 'k-')
             ax3.plot(phia[::downselect], Fi[::downselect], **mkr)
@@ -140,14 +204,18 @@ if True:
             
             mkr.update({'ls':'-', 'color':'k'})
             fmt.append([mkr, 'Anchored $L_f$={:.1f} R={:.0f}'.format(p.param.z1, p.param.R)])
+            
 
-    lplot.floating_legend(ax1.figure, loc=(.42,.35), loc_edge='lt', fmt=fmt, vpadding_inches=.10, markerw_inches=.35)
+    ax1.set_xlim([-55, 40])
+    lplot.floating_legend(ax1.figure, loc=(.42,.35), loc_edge='lt', fmt=fmt, vpadding_inches=.10, markerw_inches=.35, width_inches=3.75)
     ax1.figure.savefig(os.path.join(exportdir, 'jphi.png'))
 
-    lplot.floating_legend(ax2.figure, loc=(.58,.75), loc_edge='rb', fmt=fmt, vpadding_inches=.10, markerw_inches=.35)
+    lplot.floating_legend(ax2.figure, loc=(.58,.75), loc_edge='rb', fmt=fmt, vpadding_inches=.10, markerw_inches=.35, width_inches=3.75)
     ax2.figure.savefig(os.path.join(exportdir, 'j1phi.png'))
 
     fmt.insert(0, [{'ls':'-','color':'k'}, 'Ion current (${\eta}$)'])
     fmt.insert(1, [{'ls':'--','color':'k'}, 'Electron current (${\\nu}$)'])
-    lplot.floating_legend(ax3.figure, loc=(.55, .45), loc_edge='lt', fmt=fmt, vpadding_inches=.1, markerw_inches=.35)
+    lplot.floating_legend(ax3.figure, loc=(.5, .45), loc_edge='lt', fmt=fmt, vpadding_inches=.1, markerw_inches=.35, width_inches=3.75)
     ax3.figure.savefig(os.path.join(exportdir, 'fphi.png'))
+
+    ax4.figure.savefig(os.path.join(exportdir, 'phiphi,png'))

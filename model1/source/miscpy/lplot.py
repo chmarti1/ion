@@ -227,7 +227,7 @@ axes from the containing plot.
         ax2.set_position(p)
         
         
-def floating_legend(fig, loc, fmt, loc_edge='lt', vpadding_inches=.05, hpadding_inches=.1, markerw_inches=.2, label_size=None):
+def floating_legend(fig, loc, fmt, loc_edge='lt', vpadding_inches=.05, hpadding_inches=.1, markerw_inches=.2, label_size=None, width_inches=None):
     """FLOATING_LEGEND generate a new axes that serves as a floating legend
     fmt.append([{'lc':'k', 'marker':'o', 'mfc':'w', 'mec':'k'}, 'Data set 1' ])
     fmt.append([{'lc':'k', 'marker':'D', 'mfc':'w', 'mec':'k'}, 
@@ -258,7 +258,8 @@ def floating_legend(fig, loc, fmt, loc_edge='lt', vpadding_inches=.05, hpadding_
             mcol_width_inches)
 
     # Calculate the total width
-    width_inches = mcol_width_inches + lcol_width_inches + 3*hpadding_inches
+    if width_inches is None:
+        width_inches = mcol_width_inches + lcol_width_inches + 3*hpadding_inches
     # Calculate the total height
     height_inches = len(fmt) * (char_height_inches + vpadding_inches) + vpadding_inches
     
