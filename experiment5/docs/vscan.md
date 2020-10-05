@@ -1,0 +1,3 @@
+# vscan.py
+
+`vscan.py` prompts the user to enter parameters and then collects data at a series of uniformly spaced vertical intervals.  `vscan.py` behaves identically to [wscan](wscan.md), but the disc moves vertically instead of horizontally.  Since these scans only provide a single pedestal signal per vertical location, they do not provide enough information to reconstruct spatial resolution.  Instead, these kinds of scans are excellent ways of capturing high resolution information on the veritcal decay of ions in the outer cone.

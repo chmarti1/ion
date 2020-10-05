@@ -10,7 +10,7 @@ post2.py DATADIR
     may be specified by the command
         $ post1.py 143210
     If multiple directories are discovered with the trailing characters
-    '143210', then an exception is raise.
+    '143210', then an exception is raised.
 """
 
 import os, sys

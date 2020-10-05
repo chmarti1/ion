@@ -8,16 +8,14 @@ The principle is described in detail in the [2020 Combustion Science and Technol
 
 The post-processing in experiment 5 is more sophisticated than any of the others in this collection, so there is decidedly more rigor in organization and documentation.  All executables and scripts used to conduct and analyze the experimental results reside in the `bin` directory.  Raw data and post processing results all reside in the `data` directory.  Exported final results reside in the `export` directory.  Compilation dependencies reside in the `source` directory.
 
-For a detailed description of the executables and their function, see [docs/exec.md](./docs/exec.md).
+For an overview of the executables and their function, see [docs/exec.md](./docs/exec.md).
+
+For detailed descriptions of each, see their individual
 
 For a detailed description of the raw data files, see [docs/data.md](./docs/data.md).
-
-For a detailed description of the post 1 data files, see [docs/post1.md](./docs/post1.md).
-
-For a detailed description of the other post data files, see [docs/post.md](./docs/post.md).
 
 ## References
 
 [1] C. Martin, A. Untaroiu, K. Xu, “Spatially resolved ion density measurements in an oxyfuel cutting flame.”  Combustion Science and Technology, 2020, doi:10.1080/00102202.2020.1792458 [IN PRESS]
 
-[2] C. Martin, et al… “Semiconductor aspects of the oxyfuel cutting torch preheat flame Part II: The flame’s internal electrical structure,” ASME Manufacturing Science and Engineering Conference, Cincinnati, OH, 2020. 
+[2] C. Martin, et al... “Semiconductor aspects of the oxyfuel cutting torch preheat flame Part II: The flame’s internal electrical structure,” ASME Manufacturing Science and Engineering Conference, Cincinnati, OH, 2020. 
